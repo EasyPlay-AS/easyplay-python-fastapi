@@ -19,17 +19,23 @@ A lightweight FastAPI REST API for EasyPlay optimization services.
 2. **Create and activate virtual environment**
 
    ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   python -m venv .venv # or python3
+   source .venv/bin/activate  # On Windows: source .venv\Scripts\activate
    ```
 
-3. **Install dependencies**
+3. Upgrade `pip`
+
+   ```bash
+   python -m pip install --upgrade pip
+   ```
+
+4. **Install dependencies**
 
    ```bash
    pip install -r requirements.txt
    ```
 
-4. **Run the development server**
+5. **Run the development server**
 
    ```bash
    fastapi dev main.py
