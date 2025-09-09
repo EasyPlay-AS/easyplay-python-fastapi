@@ -39,6 +39,7 @@ async def optimization(payload: OptimizationInput, _: str = Depends(verify_token
         result=Result.SUCCESS,
         start_time=start_time,
         duration_ms=duration_ms,
+        score=100.0,
         events=[]
     )
 
