@@ -26,7 +26,7 @@ async def root():
 async def optimization(payload: OptimizationInput, _: str = Depends(verify_token)):
     start_time = datetime.now()
 
-    # sleep 1 sec
+    # TODO: Remove mock sleep
     time.sleep(1)
 
     end_time = datetime.now()
