@@ -1,0 +1,16 @@
+[phases.setup]
+nixPkgs = ["python311", "pip"]
+
+[phases.install]
+cmds = [
+  "pip install --upgrade pip",
+  "pip install -r requirements.txt",
+  "python -m amplpy.modules install scip",
+  "python -m amplpy.modules activate YOUR_AMPL_LICENSE_UUID_HERE"
+]
+
+[phases.build]
+cmds = ["echo 'Build complete'"]
+
+[start]
+cmd = "hypercorn main:app --bind \"[::]:$PORT\""
