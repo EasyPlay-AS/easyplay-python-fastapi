@@ -90,12 +90,16 @@ To deploy this application on Railway:
 3. **Deploy**
 
    - Connect your GitHub repository to Railway
-   - Railway will automatically detect the `nixpacks.toml` configuration
-   - The deployment will install AMPL, SCIP solver, and activate your license using the environment variable
+   - Railway will use the Dockerfile for deployment (configured in `railway.json`)
+   - The deployment will automatically:
+     - Install all dependencies including `amplpy`
+     - Install SCIP solver
+     - Activate your AMPL license using the environment variable
+     - Start the FastAPI application
 
 4. **Verify Deployment**
    - Check the logs to ensure AMPL license is activated successfully
-   - Test the `/solve-example` endpoint
+   - Test the `/solve-example` endpoint at `https://your-app.railway.app/solve-example`
 
 ## Features
 
