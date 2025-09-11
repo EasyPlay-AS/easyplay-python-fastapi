@@ -18,8 +18,14 @@ COPY . .
 # Install project dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install SCIP solver for AMPL
+# Install and setup AMPL (following README steps exactly)
+# Install Python API for AMPL
+RUN python -m pip install amplpy --upgrade
+
+# Install SCIP (AMPL is installed automatically with any solver)
 RUN python -m amplpy.modules install scip
+
+# Verify AMPL installation (this will be done at runtime with license activation)
 
 # Create a startup script for AMPL license activation
 RUN echo '#!/bin/sh\n\
@@ -28,6 +34,9 @@ if [ -n "$AMPL_LICENSE_UUID" ]; then\n\
     echo "Activating AMPL license..."\n\
     python -m amplpy.modules activate "$AMPL_LICENSE_UUID"\n\
     echo "AMPL license activated successfully"\n\
+    # Confirm that the license is active\n\
+    echo "Verifying AMPL installation..."\n\
+    python -m amplpy.modules run ampl -vvq\n\
 else\n\
     echo "Warning: AMPL_LICENSE_UUID not set. AMPL will run in demo mode."\n\
 fi\n\
