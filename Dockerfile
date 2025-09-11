@@ -18,29 +18,21 @@ COPY . .
 # Install project dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Install and setup AMPL (following README steps exactly)
+# Install Python API for AMPL
+RUN python -m pip install amplpy --upgrade
+
 # Install SCIP (AMPL is installed automatically with any solver)
 RUN python -m amplpy.modules install scip
 
-# Create a startup script for AMPL license activation
-RUN echo '#!/bin/sh\n\
-# Activate AMPL license if provided\n\
-if [ -n "$AMPL_LICENSE_UUID" ]; then\n\
-    echo "Activating AMPL license..."\n\
-    python -m amplpy.modules activate "$AMPL_LICENSE_UUID"\n\
-    echo "AMPL license activated successfully"\n\
-    # Confirm that the license is active\n\
-    echo "Verifying AMPL installation..."\n\
-    python -m amplpy.modules run ampl -vvq\n\
-else\n\
-    echo "Warning: AMPL_LICENSE_UUID not set. AMPL will run in demo mode."\n\
-fi\n\
-\n\
-# Start the application\n\
-exec hypercorn main:app --bind 0.0.0.0:${PORT:-8000}\n\
-' > /app/start.sh && chmod +x /app/start.sh
+# Activate AMPL license
+RUN python -m amplpy.modules activate $AMPL_LICENSE_UUID
+
+# Confirm that the license is active
+RUN python -m amplpy.modules run ampl -vvq
 
 # Expose port 8000
 EXPOSE 8000
 
-# Run the startup script
+# Run the web service on container startup.
 CMD ["sh", "-c", "hypercorn main:app --bind 0.0.0.0:${PORT:-8000}"]
