@@ -6,7 +6,7 @@ cmds = [
   "pip install --upgrade pip",
   "pip install -r requirements.txt",
   "python -m amplpy.modules install scip",
-  "python -m amplpy.modules activate YOUR_AMPL_LICENSE_UUID_HERE"
+  "python -m amplpy.modules activate $AMPL_LICENSE_UUID"
 ]
 
 [phases.build]
