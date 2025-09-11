@@ -11,4 +11,4 @@ COPY ./models/ /code/models/
 COPY ./ampl/ /code/ampl/
 COPY ./auth.py /code/
 
-CMD ["hypercorn", "main:app", "--bind", "0.0.0.0:80"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]
