@@ -81,15 +81,19 @@ To deploy this application on Railway:
 
    - Get a free AMPL Community Edition license from [https://ampl.com/ce](https://ampl.com/ce)
    - Copy your license UUID
-   - Edit `nixpacks.toml` and replace `YOUR_AMPL_LICENSE_UUID_HERE` with your actual license UUID
 
-2. **Deploy**
+2. **Configure Railway Environment**
+
+   - In your Railway project, go to Variables tab
+   - Add environment variable: `AMPL_LICENSE_UUID` with your license UUID
+
+3. **Deploy**
 
    - Connect your GitHub repository to Railway
    - Railway will automatically detect the `nixpacks.toml` configuration
-   - The deployment will install AMPL, SCIP solver, and activate your license automatically
+   - The deployment will install AMPL, SCIP solver, and activate your license using the environment variable
 
-3. **Verify Deployment**
+4. **Verify Deployment**
    - Check the logs to ensure AMPL license is activated successfully
    - Test the `/solve-example` endpoint
 
