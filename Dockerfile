@@ -18,14 +18,8 @@ COPY . .
 # Install project dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install and setup AMPL (following README steps exactly)
-# Install Python API for AMPL
-RUN python -m pip install amplpy --upgrade
-
 # Install SCIP (AMPL is installed automatically with any solver)
 RUN python -m amplpy.modules install scip
-
-# Verify AMPL installation (this will be done at runtime with license activation)
 
 # Create a startup script for AMPL license activation
 RUN echo '#!/bin/sh\n\
@@ -49,4 +43,4 @@ exec hypercorn main:app --bind 0.0.0.0:${PORT:-8000}\n\
 EXPOSE 8000
 
 # Run the startup script
-CMD ["/app/start.sh"]
+CMD ["sh", "-c", "hypercorn main:app --bind 0.0.0.0:${PORT:-8000}"]
