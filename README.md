@@ -35,7 +35,25 @@ A lightweight FastAPI REST API for EasyPlay optimization services.
    pip install -r requirements.txt
    ```
 
-5. **Run the development server**
+5. **Install and setup AMPL**
+
+- [AMPL initiup setup](https://amplpy.ampl.com/en/latest/getting-started.html)
+
+  ```bash
+  # Install Python API for AMPL
+  python -m pip install amplpy --upgrade
+
+  # Install SCIP (AMPL is installed automatically with any solver)
+  python -m amplpy.modules install scip
+
+  # Activate your license (e.g., free https://ampl.com/ce license)
+  python -m amplpy.modules activate <license-uuid>
+
+  # Confirm that the license is active
+  python -m amplpy.modules run ampl -vvq
+  ```
+
+6. **Run the development server**
 
    ```bash
    fastapi dev main.py
@@ -55,6 +73,26 @@ FastAPI automatically generates interactive API documentation:
 - **Swagger UI**: `http://127.0.0.1:8000/docs`
 - **ReDoc**: `http://127.0.0.1:8000/redoc`
 
+## Railway Deployment
+
+To deploy this application on Railway:
+
+1. **Set up AMPL License**
+
+   - Get a free AMPL Community Edition license from [https://ampl.com/ce](https://ampl.com/ce)
+   - Copy your license UUID
+   - Edit `nixpacks.toml` and replace `YOUR_AMPL_LICENSE_UUID_HERE` with your actual license UUID
+
+2. **Deploy**
+
+   - Connect your GitHub repository to Railway
+   - Railway will automatically detect the `nixpacks.toml` configuration
+   - The deployment will install AMPL, SCIP solver, and activate your license automatically
+
+3. **Verify Deployment**
+   - Check the logs to ensure AMPL license is activated successfully
+   - Test the `/solve-example` endpoint
+
 ## Features
 
 - ⚡ **Fast**: One of the fastest Python frameworks
@@ -62,3 +100,4 @@ FastAPI automatically generates interactive API documentation:
 - 📚 **Auto docs**: Automatic OpenAPI/Swagger documentation
 - ✅ **Validation**: Automatic request/response validation
 - 🔒 **Security**: Built-in security features
+- 🚀 **Railway Ready**: Pre-configured for Railway deployment with AMPL
