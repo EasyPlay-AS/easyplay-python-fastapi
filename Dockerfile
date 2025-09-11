@@ -1,14 +1,15 @@
-FROM python:3.9
+# Use the Python 3 alpine official image
+# https://hub.docker.com/_/python
+FROM python:3-alpine
 
-WORKDIR /code
+# Create and change to the app directory.
+WORKDIR /app
 
-COPY ./requirements.txt /code/requirements.txt
+# Copy local code to the container image.
+COPY . .
 
-RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
+# Install project dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-COPY ./main.py /code/
-COPY ./models/ /code/models/
-COPY ./ampl/ /code/ampl/
-COPY ./auth.py /code/
-
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]
+# Run the web service on container startup.
+CMD ["hypercorn", "main:app", "--bind", "::"]
