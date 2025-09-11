@@ -20,8 +20,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # ------------------------------------------------------------
 # Install and setup AMPL (following README steps exactly)
+# NOTE: amplpy is not in requirements.txt
 # ------------------------------------------------------------
-    
+
+# Install Python API for AMPL
+RUN python -m pip install amplpy --upgrade
+
 # Install SCIP (AMPL is installed automatically with any solver)
 RUN python -m amplpy.modules install scip
 
