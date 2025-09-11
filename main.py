@@ -1,11 +1,12 @@
-
 from datetime import datetime
-import time
+from amplpy import AMPL
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI
 from auth import verify_token
-from models.optimization_input import OptimizationInput
-from models.optimization_output import OptimizationOutput, Result
+
+from models.example.example_input import ExampleInput
+from models.example.example_output import ExampleOutput
+
 
 load_dotenv()
 
@@ -22,28 +23,51 @@ async def root():
     }
 
 
-@app.post("/optimization")
-async def optimization(payload: OptimizationInput, _: str = Depends(verify_token)):
+@app.post("/solve-example")
+async def solve_example(payload: ExampleInput, _: str = Depends(verify_token)):
     start_time = datetime.now()
 
-    # TODO: Remove mock sleep
-    time.sleep(1)
+    try:
+        # Initialize AMPL session
+        ampl = AMPL()
 
-    end_time = datetime.now()
+        # Specify the solver
+        ampl.setOption("solver", "scip")
 
-    duration = end_time - start_time
-    duration_ms = round(duration.total_seconds() * 1000, 2)
+        # Load the model file
+        ampl.read("ampl/example.mod")
 
-    # TODO: Calculate output
-    optimization_output = OptimizationOutput(
-        result=Result.SUCCESS,
-        start_time=start_time,
-        duration_ms=duration_ms,
-        score=100.0,
-        events=[]
-    )
+        # Set the parameters from the payload
+        ampl.param["a"] = payload.a
+        ampl.param["b"] = payload.b
 
-    return {
-        "message": "Optimization endpoint",
-        "output": optimization_output,
-    }
+        # Solve the model
+        ampl.solve()
+
+        # Extract results - CORRECTED METHOD
+        objective_value = ampl.obj["Objective"].value()
+        print("RESULT objective_value", objective_value)
+
+        # Get variables - Iterate over the EntityMap to get all variable values
+        variable_values = {}
+        variables = ampl.get_variables()
+
+        for var_name, var_obj in variables:
+            variable_values[var_name] = var_obj.value()
+            print(f"Variable {var_name}: {var_obj.value()}")
+
+        # Build the response
+        end_time = datetime.now()
+        duration_ms = round((end_time - start_time).total_seconds() * 1000, 2)
+
+        output = ExampleOutput(
+            result="SUCCESS",
+            objective_value=objective_value,
+            variable_values=variable_values,
+            duration_ms=duration_ms,
+        )
+        return output
+
+    except Exception as e:
+        # Handle errors gracefully
+        return {"result": "FAILURE", "error": str(e)}
