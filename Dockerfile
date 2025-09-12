@@ -1,19 +1,14 @@
-# Use the Python 3 alpine official image
-# https://hub.docker.com/_/python
-FROM python:3-alpine
-
-# Install build dependencies for amplpy
-RUN apk add --no-cache \
-    g++ \
-    gcc \
-    musl-dev \
-    libffi-dev
+FROM python:3.9-slim-bullseye
 
 # Create and change to the app directory.
 WORKDIR /app
 
 # Copy local code to the container image.
 COPY . .
+
+# Install amplpy and all necessary amplpy.modules:
+RUN python -m pip install amplpy --no-cache-dir
+RUN python -m amplpy.modules install scip --no-cache-dir
 
 # Install project dependencies
 RUN pip install --no-cache-dir -r requirements.txt
