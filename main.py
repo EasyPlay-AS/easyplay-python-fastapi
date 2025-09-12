@@ -1,7 +1,6 @@
 import os
-import subprocess
 from datetime import datetime
-from amplpy import AMPL
+from amplpy import AMPL, modules
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI
 from auth import verify_token
@@ -10,24 +9,14 @@ from models.example.example_input import ExampleInput
 from models.example.example_output import ExampleOutput
 
 
+# Load environment variables
 load_dotenv()
 
-
-def activate_ampl_license():
-    license_uuid = os.getenv("AMPL_LICENSE_UUID")
-    if license_uuid:
-        try:
-            subprocess.run(["amplkey", "activate", "--uuid",
-                           license_uuid], check=True)
-            print(f"AMPL license activated with UUID: {license_uuid}")
-        except Exception as e:
-            print(f"Failed to activate AMPL license: {e}")
-    else:
-        print("No AMPLKEY_UUID environment variable found, skipping license activation")
-
-
+# Initialize FastAPI app
 app = FastAPI()
-activate_ampl_license()
+
+# Activate AMPL license
+modules.activate(os.getenv("AMPL_LICENSE_UUID"))
 
 
 @app.get("/")
