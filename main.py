@@ -67,6 +67,7 @@ async def solve_example(payload: ExampleInput, _: str = Depends(verify_token)):
             variable_values=variable_values,
             duration_ms=duration_ms,
         )
+
         return output
 
     except Exception as e:
