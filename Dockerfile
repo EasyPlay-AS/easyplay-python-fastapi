@@ -6,13 +6,16 @@ WORKDIR /app
 # Copy local code to the container image.
 COPY . .
 
+# Upgrade pip
+RUN python -m pip install --upgrade pip
+
+# Install project dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
 # Install amplpy and all necessary amplpy.modules:
 RUN python -m pip install amplpy --no-cache-dir
 RUN python -m amplpy.modules install scip --no-cache-dir
 RUN python -m amplpy.modules activate 9644d103-8697-465c-8609-bf247c76e681
-
-# Install project dependencies
-RUN pip install --no-cache-dir -r requirements.txt
 
 # Expose port 8000
 EXPOSE 8000
