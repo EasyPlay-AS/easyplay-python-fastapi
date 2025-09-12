@@ -73,6 +73,26 @@ FastAPI automatically generates interactive API documentation:
 - **Swagger UI**: `http://127.0.0.1:8000/docs`
 - **ReDoc**: `http://127.0.0.1:8000/redoc`
 
+## Docker
+
+Builder the Docker Image
+
+```bash
+docker build -t easyplay-fastapi .
+```
+
+- `-t easyplay-fastapi` tags your image with the name "easyplay-fastapi"
+- `.` tells Docker to use the current directory as the build context
+
+Run the Docker Container
+
+```bash
+docker run -d -p 8000:8000 easyplay-fastapi
+```
+
+- `-p 8000:8000` maps port 8000 from your host machine to port 8000 in the container
+- `easyplay-fastapi` is the name of the image you just built
+
 ## Railway Deployment
 
 To deploy this application on Railway:
