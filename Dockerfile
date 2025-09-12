@@ -15,10 +15,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Install amplpy and all necessary amplpy.modules:
 RUN python -m pip install amplpy --no-cache-dir
 RUN python -m amplpy.modules install scip --no-cache-dir
-RUN python -m amplpy.modules activate 9644d103-8697-465c-8609-bf247c76e681
 
 # Expose port 8000
 EXPOSE 8000
 
-# Run the web service on container startup.
-CMD ["sh", "-c", "hypercorn main:app --bind 0.0.0.0:${PORT:-8000}"]
+# Activate AMPL and run the web service
+CMD ["sh", "-c", "python -m amplpy.modules activate 9644d103-8697-465c-8609-bf247c76e681 && hypercorn main:app --bind 0.0.0.0:${PORT:-8000}"]
