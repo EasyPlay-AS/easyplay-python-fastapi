@@ -9,6 +9,7 @@ COPY . .
 # Install amplpy and all necessary amplpy.modules:
 RUN python -m pip install amplpy --no-cache-dir
 RUN python -m amplpy.modules install scip --no-cache-dir
+RUN python -m amplpy.modules activate 9644d103-8697-465c-8609-bf247c76e681
 
 # Install project dependencies
 RUN pip install --no-cache-dir -r requirements.txt

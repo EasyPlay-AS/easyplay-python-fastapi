@@ -1,6 +1,5 @@
-import os
 from datetime import datetime
-from amplpy import AMPL, modules
+from amplpy import AMPL
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI
 from auth import verify_token
@@ -14,13 +13,6 @@ load_dotenv()
 
 # Initialize FastAPI app
 app = FastAPI()
-
-# Activate AMPL license
-ampl_license_uuid = os.getenv("AMPL_LICENSE_UUID")
-if ampl_license_uuid is not None:
-    modules.activate(ampl_license_uuid)
-else:
-    raise ValueError("AMPL_LICENSE_UUID is not set")
 
 
 @app.get("/")
