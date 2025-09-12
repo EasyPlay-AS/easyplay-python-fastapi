@@ -36,7 +36,6 @@ async def solve_example(payload: ExampleInput, _: str = Depends(verify_token)):
 
         # Specify the solver
         ampl.setOption("solver", "scip")
-        print("Solver set to scip", ampl)
 
         # Load the model file
         ampl.read("ampl/example.mod")
@@ -50,7 +49,6 @@ async def solve_example(payload: ExampleInput, _: str = Depends(verify_token)):
 
         # Extract results - CORRECTED METHOD
         objective_value = ampl.obj["Objective"].value()
-        print("RESULT objective_value", objective_value)
 
         # Get variables - Iterate over the EntityMap to get all variable values
         variable_values = {}
@@ -58,7 +56,6 @@ async def solve_example(payload: ExampleInput, _: str = Depends(verify_token)):
 
         for var_name, var_obj in variables:
             variable_values[var_name] = var_obj.value()
-            print(f"Variable {var_name}: {var_obj.value()}")
 
         # Build the response
         end_time = datetime.now()
