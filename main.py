@@ -32,9 +32,11 @@ async def solve_example(payload: ExampleInput, _: str = Depends(verify_token)):
     try:
         # Initialize AMPL session
         ampl = AMPL()
+        print("AMPL initialized", ampl)
 
         # Specify the solver
         ampl.setOption("solver", "scip")
+        print("Solver set to scip", ampl)
 
         # Load the model file
         ampl.read("ampl/example.mod")
