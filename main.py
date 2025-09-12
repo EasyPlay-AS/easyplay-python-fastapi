@@ -16,7 +16,11 @@ load_dotenv()
 app = FastAPI()
 
 # Activate AMPL license
-modules.activate(os.getenv("AMPL_LICENSE_UUID"))
+ampl_license_uuid = os.getenv("AMPL_LICENSE_UUID")
+if ampl_license_uuid is not None:
+    modules.activate(ampl_license_uuid)
+else:
+    raise ValueError("AMPL_LICENSE_UUID is not set")
 
 
 @app.get("/")
