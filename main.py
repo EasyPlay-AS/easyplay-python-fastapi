@@ -38,7 +38,7 @@ async def solve_example(payload: ExampleInput, _: str = Depends(verify_token)):
         ampl.setOption("solver", "scip")
 
         # Load the model file
-        # ampl.read("ampl/example.mod")
+        ampl.read("ampl/example.mod")
 
         # Set the parameters from the payload
         ampl.param["a"] = payload.a
