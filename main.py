@@ -1,5 +1,5 @@
 from datetime import datetime
-from amplpy import AMPL
+from amplpy import AMPL, modules
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI
 from auth import verify_token
@@ -14,6 +14,11 @@ load_dotenv()
 
 # Initialize FastAPI app
 app = FastAPI()
+
+
+# Activate AMPL license
+AMPL_LICENSE_UUID = "9644d103-8697-465c-8609-bf247c76e681"
+modules.activate(AMPL_LICENSE_UUID)
 
 
 @app.get("/")
@@ -31,7 +36,7 @@ async def solve_example(payload: ExampleInput, _: str = Depends(verify_token)):
     start_time = datetime.now()
 
     try:
-        # Initialize AMPL session
+        # Initialize AMPL
         ampl = AMPL()
 
         # Specify the solver
