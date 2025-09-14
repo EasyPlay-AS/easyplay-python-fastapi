@@ -33,33 +33,25 @@ async def solve_example(payload: ExampleInput, _: str = Depends(verify_token)):
     try:
         # Initialize AMPL session
         ampl = AMPL()
-        print("AMPL initialized", ampl)
 
         # Specify the solver
         ampl.setOption("solver", "scip")
-        print("Solver set to scip")
 
         # Load the model file
         ampl.read("ampl/example.mod")
-        print("Model file loaded")
 
         # Set the parameters from the payload
         ampl.param["a"] = payload.a
         ampl.param["b"] = payload.b
-        print(f"Parameters set: a={payload.a}, b={payload.b}")
 
         # Solve the model
-        print("Starting to solve...")
         ampl.solve()
-        print("Solve completed")
 
         # Check solve status
         solve_status = ampl.getValue("solve_result")
-        print(f"Solve status: {solve_status}")
 
         # Extract results - CORRECTED METHOD
         objective_value = ampl.obj["Objective"].value()
-        print(f"Objective value: {objective_value}")
 
         # Get variables - Iterate over the EntityMap to get all variable values
         variable_values = {}
@@ -67,7 +59,6 @@ async def solve_example(payload: ExampleInput, _: str = Depends(verify_token)):
 
         for var_name, var_obj in variables:
             variable_values[var_name] = var_obj.value()
-            print(f"Variable {var_name}: {var_obj.value()}")
 
         # Build the response
         end_time = datetime.now()
