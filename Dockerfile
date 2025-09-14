@@ -13,8 +13,8 @@ RUN python -m pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Install amplpy and all necessary amplpy.modules:
-# RUN python -m pip install amplpy --no-cache-dir
-# RUN python -m amplpy.modules install scip --no-cache-dir
+RUN python -m pip install amplpy --no-cache-dir
+RUN python -m amplpy.modules install scip --no-cache-dir
 
 # Expose port 8000
 EXPOSE 8000
