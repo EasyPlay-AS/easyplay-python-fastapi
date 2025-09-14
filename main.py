@@ -1,4 +1,3 @@
-import subprocess
 from datetime import datetime
 from amplpy import AMPL
 from dotenv import load_dotenv
@@ -13,37 +12,18 @@ from models.example.example_output import ExampleOutput
 load_dotenv()
 
 
-def activate_ampl_license():
-    """Activate AMPL license using amplpy.modules activate command"""
-    license_uuid = "9644d103-8697-465c-8609-bf247c76e681"
-
-    try:
-        # Try to activate with the license UUID
-        result = subprocess.run(
-            ["python", "-m", "amplpy.modules", "activate", license_uuid],
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        print(
-            f"AMPL license activated successfully with UUID {license_uuid}: {result.stdout}")
-        return True
-    except subprocess.CalledProcessError as e:
-        print(f"Failed to activate AMPL license: {e.stderr}")
-        return False
-    except Exception as e:
-        print(f"Unexpected error activating AMPL license: {e}")
-        return False
-
-
 # Initialize FastAPI app
 app = FastAPI()
 
-# Activate license on startup
-print("Activating AMPL license...")
-LICENSE_ACTIVATED = activate_ampl_license()
-if not LICENSE_ACTIVATED:
-    print("Warning: AMPL license activation failed. Some features may not work properly.")
+
+@app.get("/")
+async def root():
+    return {
+        "message": (
+            "Welcome to EasyPlay Python FastAPI! "
+            "Swagger UI documentation is available at /docs"
+        )
+    }
 
 
 @app.post("/solve-example")
