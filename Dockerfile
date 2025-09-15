@@ -1,14 +1,12 @@
 FROM python:3.9-slim-bullseye
 
-# Install necessary system dependencies for AMPL and solver compilation
-# RUN apt-get update && apt-get install -y --no-install-recommends \
-#     build-essential \
-#     gfortran \
-#     libgmp-dev \
-#     && rm -rf /var/lib/apt/lists/*
-
 # Create and change to the application directory.
 WORKDIR /app
+
+# Install required system dependencies using apt, including libgfortran5
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgfortran5 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy local code and requirements file
 COPY . .
