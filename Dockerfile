@@ -22,4 +22,4 @@ RUN python -m pip install amplpy --no-cache-dir
 EXPOSE 8000
 
 # Run the web service on container startup.
-CMD ["hypercorn", "main:app", "--bind", "0.0.0.0:${PORT:-8000}"]
+CMD ["sh", "-c", "hypercorn main:app --bind 0.0.0.0:${PORT:-8000}"]
