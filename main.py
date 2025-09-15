@@ -1,6 +1,6 @@
 
 from datetime import datetime
-from amplpy import AMPL, modules
+from amplpy import AMPL
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI
 from auth import verify_token
@@ -13,11 +13,6 @@ load_dotenv()
 
 # Initialize FastAPI app
 app = FastAPI()
-
-
-# Activate AMPL license
-# AMPL_LICENSE_UUID = "9644d103-8697-465c-8609-bf247c76e681"
-# modules.activate(AMPL_LICENSE_UUID)
 
 
 @app.get("/")
@@ -53,7 +48,7 @@ async def solve_test():
         if solve_result != "solved":
             return {
                 "result": "FAILURE",
-                "error": f"Solver failed with result: {solve_result}"
+                "error": "Solver failed to solve the model"
             }
 
         ampl_objective = ampl.obj["Objective"].value()
@@ -89,8 +84,8 @@ async def solve_a_b(payload: ExampleInput, _: str = Depends(verify_token)):
         solve_result = ampl.get_value("solve_result")
         if solve_result != "solved":
             return {
-                "result": "FAILURE", "error":
-                f"Solver failed with result: {solve_result}"
+                "result": "FAILURE",
+                "error": "Solver failed to solve the model"
             }
 
         # Extract results - CORRECTED METHOD
@@ -110,7 +105,10 @@ async def solve_a_b(payload: ExampleInput, _: str = Depends(verify_token)):
         return output
     except Exception as e:
         # Handle errors gracefully
-        return {"result": "FAILURE", "error": str(e)}
+        return {
+            "result": "FAILURE",
+            "error": str(e)
+        }
 
 
 @app.post("/solve-example")
@@ -139,7 +137,7 @@ async def solve_example(payload: ExampleInput, _: str = Depends(verify_token)):
         if solve_result != "solved":
             return {
                 "result": "FAILURE",
-                "error": f"Solver failed with result: {solve_result}"
+                "error": "Solver failed to solve the model"
             }
 
         # Extract results
@@ -165,4 +163,7 @@ async def solve_example(payload: ExampleInput, _: str = Depends(verify_token)):
 
     except Exception as e:
         # Handle errors gracefully
-        return {"result": "FAILURE", "error": str(e)}
+        return {
+            "result": "FAILURE",
+            "error": str(e)
+        }
