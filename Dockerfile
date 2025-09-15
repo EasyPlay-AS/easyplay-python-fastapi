@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Set environment variable for AMPL modules directory
-ENV AMPL_MODULES_DIRECTORY=/app/ampl_modules
+ENV AMPL_MODULES_DIRECTORY=
 
 # Create the directory for AMPL modules
 RUN mkdir -p ${AMPL_MODULES_DIRECTORY}
@@ -24,7 +24,7 @@ RUN python -m pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Install amplpy and the SCIP solver separately
-RUN python -m pip install amplpy --no-cache-dir && \
+RUN python -m pip install amplpy --install-dir ${AMPL_MODULES_DIRECTORY} --no-cache-dir && \
     python -m amplpy.modules install scip --install-dir ${AMPL_MODULES_DIRECTORY} --no-cache-dir
 
 # Expose port 8000
