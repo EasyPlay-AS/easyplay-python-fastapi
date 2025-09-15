@@ -7,12 +7,6 @@ FROM python:3.9-slim-bullseye
 #     libgmp-dev \
 #     && rm -rf /var/lib/apt/lists/*
 
-# Set environment variable for AMPL modules directory
-ENV AMPL_MODULES_DIRECTORY=/ampl_modules
-
-# Create the directory for AMPL modules
-RUN mkdir -p ${AMPL_MODULES_DIRECTORY}
-
 # Create and change to the application directory.
 WORKDIR /app
 
@@ -23,9 +17,10 @@ COPY . .
 RUN python -m pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Install amplpy and the SCIP solver separately
-RUN python -m pip install amplpy --install-dir ${AMPL_MODULES_DIRECTORY} --no-cache-dir && \
-    python -m amplpy.modules install scip --install-dir ${AMPL_MODULES_DIRECTORY} --no-cache-dir
+# Install amplpy, then install AMPL runtime and SCIP into the modules store
+RUN python -m pip install --no-cache-dir amplpy && \
+    python -m amplpy.modules install ampl && \
+    python -m amplpy.modules install scip
 
 # Expose port 8000
 EXPOSE 8000
