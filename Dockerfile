@@ -10,11 +10,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Set environment variable for AMPL modules directory
 ENV AMPL_MODULES_DIRECTORY=/app/ampl_modules
 
-# Create and change to the app directory.
-WORKDIR /app
+# Create the directory for AMPL modules
+RUN mkdir -p ${AMPL_MODULES_DIRECTORY}
 
-# Create the AMPL modules directory
-RUN mkdir -p /ampl_modules
+# Create and change to the application directory.
+WORKDIR /app
 
 # Copy local code and requirements file
 COPY . .
