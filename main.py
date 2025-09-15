@@ -30,14 +30,39 @@ async def root():
     }
 
 
-@app.get("/debug")
-async def debug():
+@app.post("/solve-test")
+async def solve_test():
     try:
         ampl = AMPL()
         ampl.option["solver"] = "scip"
 
-        ampl_solver = ampl.option["solver"]
-        return {"installed_solvers": ampl_solver}
+        ampl.eval("""
+            param a;
+            param b;
+            var x >= 0;
+            maximize Objective: a * b * x;
+            subject to limit: x <= b + 0.99;
+        """)
+
+        ampl.param["a"] = 10
+        ampl.param["b"] = 5
+
+        ampl.solve()
+
+        solve_result = ampl.get_value("solve_result")
+        if solve_result != "solved":
+            return {
+                "result": "FAILURE",
+                "error": f"Solver failed with result: {solve_result}"
+            }
+
+        ampl_objective = ampl.obj["Objective"].value()
+        ampl_x = ampl.var["x"].value()
+
+        return {
+            "objective": ampl_objective,
+            "x": ampl_x
+        }
     except Exception as e:
         return {"error": str(e)}
 
@@ -49,9 +74,6 @@ async def solve_a_b(payload: ExampleInput, _: str = Depends(verify_token)):
     try:
         # Initialize AMPL
         ampl = AMPL()
-
-        # Specify the solver
-        ampl.option["solver"] = "scip"
 
         # Load the model file
         ampl.read("ampl/a_b.mod")
@@ -65,8 +87,11 @@ async def solve_a_b(payload: ExampleInput, _: str = Depends(verify_token)):
 
         # Check solve status
         solve_result = ampl.get_value("solve_result")
-        if solve_result not in ["solved", "limit_exceeded_but_feasible"]:
-            return {"result": "FAILURE", "error": f"Solver failed with status: {solve_result}"}
+        if solve_result != "solved":
+            return {
+                "result": "FAILURE", "error":
+                f"Solver failed with result: {solve_result}"
+            }
 
         # Extract results - CORRECTED METHOD
         objective = ampl.obj["Objective"]
@@ -97,7 +122,7 @@ async def solve_example(payload: ExampleInput, _: str = Depends(verify_token)):
         ampl = AMPL()
 
         # Specify the solver
-        ampl.option["solver"] = "scip"
+        # ampl.option["solver"] = "scip"
 
         # Load the model file
         ampl.read("ampl/example.mod")
@@ -109,21 +134,15 @@ async def solve_example(payload: ExampleInput, _: str = Depends(verify_token)):
         # Solve the model
         ampl.solve()
 
-        # Check solve status and retrieve detailed info
+        # Check solve result
         solve_result = ampl.get_value("solve_result")
-        solve_message = ampl.get_value("solve_message")
-
-        # Check for failure and build a detailed error message
         if solve_result != "solved":
-            error_info = {
+            return {
                 "result": "FAILURE",
-                "error": f"Solver failed with status: {solve_result}",
-                "solve_message": solve_message,
-                "solver_output": ampl.get_option("show_stats"),
+                "error": f"Solver failed with result: {solve_result}"
             }
-            return error_info
 
-        # Extract results - CORRECTED METHOD
+        # Extract results
         objective = ampl.obj["Objective"]
         objective_value = objective.value()
 
