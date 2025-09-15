@@ -12,9 +12,14 @@ RUN python -m pip install --upgrade pip
 # Install project dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install amplpy and all necessary amplpy.modules:
+# --- AMPLPY Configuration for Docker ---
+# Set the environment variable for AMPL module directory.
+# This makes it easy for amplpy to find the installed solvers.
+ENV AMPL_MODULES_DIRECTORY=/app/ampl_modules
+
+# Install amplpy and all necessary amplpy.modules into the specified directory:
 RUN python -m pip install amplpy --no-cache-dir
-RUN python -m amplpy.modules install scip --no-cache-dir
+RUN python -m amplpy.modules install scip --install-dir ${AMPL_MODULES_DIRECTORY} --no-cache-dir
 
 # Expose port 8000
 EXPOSE 8000
