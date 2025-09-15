@@ -30,6 +30,18 @@ async def root():
     }
 
 
+@app.get("/debug")
+async def debug():
+    try:
+        ampl = AMPL()
+        ampl.option["solver"] = "scip"
+
+        ampl_solver = ampl.option["solver"]
+        return {"installed_solvers": ampl_solver}
+    except Exception as e:
+        return {"error": str(e)}
+
+
 @app.post("/solve-a-b")
 async def solve_a_b(payload: ExampleInput, _: str = Depends(verify_token)):
     start_time = datetime.now()
@@ -39,7 +51,7 @@ async def solve_a_b(payload: ExampleInput, _: str = Depends(verify_token)):
         ampl = AMPL()
 
         # Specify the solver
-        ampl.setOption("solver", "scip")
+        ampl.option["solver"] = "scip"
 
         # Load the model file
         ampl.read("ampl/a_b.mod")
