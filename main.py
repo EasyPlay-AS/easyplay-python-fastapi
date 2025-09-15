@@ -53,14 +53,13 @@ async def solve_example(payload: ExampleInput, _: str = Depends(verify_token)):
         ampl.solve()
 
         # Extract results - CORRECTED METHOD
-        objective_value = ampl.obj["Objective"].value()
+        objective_value = ampl.get_objective("Objective").value()
 
         # Get variables - Iterate over the EntityMap to get all variable values
-        variable_values = {}
-        variables = ampl.get_variables()
-
-        for var_name, var_obj in variables:
-            variable_values[var_name] = var_obj.value()
+        variable_values = {
+            "x": ampl.get_variable("x").value(),
+            "y": ampl.get_variable("y").value(),
+        }
 
         # Build the response
         end_time = datetime.now()
