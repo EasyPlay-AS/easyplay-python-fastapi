@@ -3,9 +3,9 @@ from datetime import datetime
 from amplpy import AMPL, modules
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI
-from auth import verify_token
-from models.example.example_input import ExampleInput
-from models.example.example_output import ExampleOutput
+from .auth import verify_token
+from .models.example.example_input import ExampleInput
+from .models.example.example_output import ExampleOutput
 
 
 # Load environment variables
