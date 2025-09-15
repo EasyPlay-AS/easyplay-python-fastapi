@@ -21,8 +21,8 @@ RUN python -m pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Install amplpy and the SCIP solver separately
-RUN python -m pip install amplpy --no-cache-dir
-RUN python -m amplpy.modules install scip --install-dir ${AMPL_MODULES_DIRECTORY} --no-cache-dir
+RUN python -m pip install amplpy --no-cache-dir && \
+    python -m amplpy.modules install scip --install-dir ${AMPL_MODULES_DIRECTORY} --no-cache-dir
 
 # Expose port 8000
 EXPOSE 8000
