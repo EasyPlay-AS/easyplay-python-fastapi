@@ -1,5 +1,4 @@
-import sys
-import logging
+
 from datetime import datetime
 from amplpy import AMPL, modules
 from dotenv import load_dotenv
@@ -11,10 +10,6 @@ from models.example.example_output import ExampleOutput
 
 # Load environment variables
 load_dotenv()
-
-# Config logging
-logger = logging.getLogger('uvicorn.error')
-
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -59,11 +54,8 @@ async def solve_example(payload: ExampleInput, _: str = Depends(verify_token)):
         # Extract results - CORRECTED METHOD
         objective = ampl.obj["Objective"]
         objective_value = objective.value()
-
-        logger.info("Python version: %s", sys.version)
-        logger.info("AMPL version: %s", ampl.getOption("version"))
-        logger.info("Solver: %s", ampl.getOption("solver"))
-        logger.info("OBJECTIVE: %s", objective)
+        print("OBJECTIVE", objective)
+        print("OBJECTIVE VALUE", objective_value)
 
         x = ampl.var["x"]
         print("X", x)
