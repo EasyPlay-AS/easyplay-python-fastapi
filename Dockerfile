@@ -13,6 +13,9 @@ ENV AMPL_MODULES_DIRECTORY=/app/ampl_modules
 # Create and change to the app directory.
 WORKDIR /app
 
+# Create the AMPL modules directory
+RUN mkdir -p ${AMPL_MODULES_DIRECTORY}
+
 # Copy local code and requirements file
 COPY . .
 
