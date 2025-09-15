@@ -1,5 +1,13 @@
 FROM python:3.9.6-slim-bullseye
 
+# Install build dependencies required for amplpy and other packages.
+# The `rm` command cleans up to keep the final image size small.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gfortran \
+    libgmp-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 # Set environment variable for AMPL modules directory
 ENV AMPL_MODULES_DIRECTORY=/app/ampl_modules
 
