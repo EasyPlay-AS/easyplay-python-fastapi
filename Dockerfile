@@ -1,30 +1,31 @@
-# Start from a slim Python image
 FROM python:3.9-slim-bullseye
 
-# Install system dependencies required for building the SCIP solver
+# Install necessary system dependencies for AMPL and solver compilation
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     gfortran \
     libgmp-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Set the environment variable for AMPL module directory
+# Set environment variable for AMPL modules directory
 ENV AMPL_MODULES_DIRECTORY=/app/ampl_modules
 
-# Create the working directory for the application
+# Create and change to the app directory.
 WORKDIR /app
 
-# Copy the application code into the container
+# Copy local code and requirements file
 COPY . .
 
-# Install Python dependencies and the AMPL SCIP solver module
-# This single RUN command ensures the solver is installed and ready
+# Upgrade pip and install project dependencies
 RUN python -m pip install --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt && \
-    python -m amplpy.modules install scip --install-dir ${AMPL_MODULES_DIRECTORY} --no-cache-dir
+    pip install --no-cache-dir -r requirements.txt
 
-# Expose the application port
+# Install amplpy and the SCIP solver separately
+RUN python -m pip install amplpy --no-cache-dir
+RUN python -m amplpy.modules install scip --install-dir ${AMPL_MODULES_DIRECTORY} --no-cache-dir
+
+# Expose port 8000
 EXPOSE 8000
 
-# Start the application
-CMD ["hypercorn", "main:app", "--bind", "0.0.0.0:${PORT:-8000}"]
+# Run the web service on container startup.
+CMD ["sh", "-c", "hypercorn main:app --bind 0.0.0.0:${PORT:-8000}"]
