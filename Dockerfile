@@ -20,4 +20,4 @@ COPY ./ampl /code/ampl
 EXPOSE 8000
 
 # Run the web service on container startup.
-CMD ["hypercorn", "app.main:app", "--bind", "0.0.0.0:${PORT:-8000}"]
+CMD ["hypercorn", "main:app", "--bind", "0.0.0.0:${PORT:-8000}"]
