@@ -13,6 +13,7 @@ RUN python -m pip install amplpy --no-cache-dir
 RUN python -m amplpy.modules install scip --no-cache-dir
 
 # Copy the application code
+COPY ./main.py /code/main.py
 COPY ./app /code/app
 COPY ./ampl /code/ampl
 
