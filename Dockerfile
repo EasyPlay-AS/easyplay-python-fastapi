@@ -14,9 +14,10 @@ RUN python -m amplpy.modules install scip --no-cache-dir
 
 # Copy the application code
 COPY ./app /code/app
+COPY ./ampl /code/ampl
 
 # Expose port 8000
 EXPOSE 8000
 
 # Run the web service on container startup.
-CMD ["fastapi", "run", "app/main.py", "--port", "8000"]
+CMD ["hypercorn", "app.main:app", "--bind", "0.0.0.0:${PORT:-8000}"]
