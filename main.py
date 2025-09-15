@@ -58,7 +58,6 @@ async def solve_example(payload: ExampleInput, _: str = Depends(verify_token)):
         # Get variables - Iterate over the EntityMap to get all variable values
         variable_values = {
             "x": ampl.get_variable("x").value(),
-            "y": ampl.get_variable("y").value(),
         }
 
         # Build the response
