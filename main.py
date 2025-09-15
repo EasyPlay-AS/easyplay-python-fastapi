@@ -97,10 +97,19 @@ async def solve_example(payload: ExampleInput, _: str = Depends(verify_token)):
         # Solve the model
         ampl.solve()
 
-        # Check solve status
+        # Check solve status and retrieve detailed info
         solve_result = ampl.get_value("solve_result")
-        if solve_result not in ["solved", "limit_exceeded_but_feasible"]:
-            return {"result": "FAILURE", "error": f"Solver failed with status: {solve_result}"}
+        solve_message = ampl.get_value("solve_message")
+
+        # Check for failure and build a detailed error message
+        if solve_result != "solved":
+            error_info = {
+                "result": "FAILURE",
+                "error": f"Solver failed with status: {solve_result}",
+                "solve_message": solve_message,
+                "solver_output": ampl.get_option("show_stats"),
+            }
+            return error_info
 
         # Extract results - CORRECTED METHOD
         objective = ampl.obj["Objective"]
