@@ -3,7 +3,6 @@ from amplpy import AMPL, modules
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI
 from auth import verify_token
-
 from models.example.example_input import ExampleInput
 from models.example.example_output import ExampleOutput
 
@@ -53,7 +52,15 @@ async def solve_example(payload: ExampleInput, _: str = Depends(verify_token)):
         ampl.solve()
 
         # Extract results - CORRECTED METHOD
-        objective_value = ampl.get_objective("Objective").value()
+        objective = ampl.obj["Objective"]
+        objective_value = objective.value()
+
+        print("OBJECTIVE", objective)
+        print("OBJECTIVE VALUE", objective_value)
+
+        x = ampl.var["x"]
+        print("X", x)
+        print("X VALUE", x.value())
 
         # Get variables - Iterate over the EntityMap to get all variable values
         variable_values = {
