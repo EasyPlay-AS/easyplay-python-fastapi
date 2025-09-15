@@ -1,24 +1,23 @@
 FROM python:3.9.6-slim-bullseye
 
-WORKDIR /code
+# Create and change to the app directory.
+WORKDIR /app
 
-COPY ./requirements.txt /code/requirements.txt
+# Copy local code to the container image.
+COPY . .
 
-# Upgrade pip and install project dependencies
+# Upgrade pip
 RUN python -m pip install --upgrade pip
-RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
-# Install amplpy and all necessary amplpy.modules
+# Install project dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Install amplpy and all necessary amplpy.modules:
 RUN python -m pip install amplpy --no-cache-dir
 RUN python -m amplpy.modules install scip --no-cache-dir
-
-# Copy the application code
-COPY ./main.py /code/main.py
-COPY ./app /code/app
-COPY ./ampl /code/ampl
 
 # Expose port 8000
 EXPOSE 8000
 
 # Run the web service on container startup.
-CMD ["hypercorn", "main:app", "--bind", "0.0.0.0:${PORT:-8000}"]
+CMD ["hypercorn", "app.main:app", "--bind", "0.0.0.0:${PORT:-8000}"]
