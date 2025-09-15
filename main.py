@@ -51,6 +51,11 @@ async def solve_a_b(payload: ExampleInput, _: str = Depends(verify_token)):
         # Solve the model
         ampl.solve()
 
+        # Check solve status
+        solve_result = ampl.get_value("solve_result")
+        if solve_result not in ["solved", "limit_exceeded_but_feasible"]:
+            return {"result": "FAILURE", "error": f"Solver failed with status: {solve_result}"}
+
         # Extract results - CORRECTED METHOD
         objective = ampl.obj["Objective"]
         objective_value = objective.value()
@@ -91,6 +96,11 @@ async def solve_example(payload: ExampleInput, _: str = Depends(verify_token)):
 
         # Solve the model
         ampl.solve()
+
+        # Check solve status
+        solve_result = ampl.get_value("solve_result")
+        if solve_result not in ["solved", "limit_exceeded_but_feasible"]:
+            return {"result": "FAILURE", "error": f"Solver failed with status: {solve_result}"}
 
         # Extract results - CORRECTED METHOD
         objective = ampl.obj["Objective"]
