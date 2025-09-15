@@ -16,8 +16,8 @@ app = FastAPI()
 
 
 # Activate AMPL license
-AMPL_LICENSE_UUID = "9644d103-8697-465c-8609-bf247c76e681"
-modules.activate(AMPL_LICENSE_UUID)
+# AMPL_LICENSE_UUID = "9644d103-8697-465c-8609-bf247c76e681"
+# modules.activate(AMPL_LICENSE_UUID)
 
 
 @app.get("/")
