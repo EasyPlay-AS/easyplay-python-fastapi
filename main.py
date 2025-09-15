@@ -30,6 +30,47 @@ async def root():
     }
 
 
+@app.post("/solve-a-b")
+async def solve_a_b(payload: ExampleInput, _: str = Depends(verify_token)):
+    start_time = datetime.now()
+
+    try:
+        # Initialize AMPL
+        ampl = AMPL()
+
+        # Specify the solver
+        ampl.setOption("solver", "scip")
+
+        # Load the model file
+        ampl.read("ampl/a_b.mod")
+
+        # Set the parameters from the payload
+        ampl.param["a"] = payload.a
+        ampl.param["b"] = payload.b
+
+        # Solve the model
+        ampl.solve()
+
+        # Extract results - CORRECTED METHOD
+        objective = ampl.obj["Objective"]
+        objective_value = objective.value()
+
+        # Build the response
+        end_time = datetime.now()
+        duration_ms = round((end_time - start_time).total_seconds() * 1000, 2)
+
+        output = ExampleOutput(
+            result="SUCCESS",
+            objective_value=objective_value,
+            variable_values={},
+            duration_ms=duration_ms,
+        )
+        return output
+    except Exception as e:
+        # Handle errors gracefully
+        return {"result": "FAILURE", "error": str(e)}
+
+
 @app.post("/solve-example")
 async def solve_example(payload: ExampleInput, _: str = Depends(verify_token)):
     start_time = datetime.now()
@@ -54,12 +95,6 @@ async def solve_example(payload: ExampleInput, _: str = Depends(verify_token)):
         # Extract results - CORRECTED METHOD
         objective = ampl.obj["Objective"]
         objective_value = objective.value()
-        print("OBJECTIVE", objective)
-        print("OBJECTIVE VALUE", objective_value)
-
-        x = ampl.var["x"]
-        print("X", x)
-        print("X VALUE", x.value())
 
         # Get variables - Iterate over the EntityMap to get all variable values
         variable_values = {
