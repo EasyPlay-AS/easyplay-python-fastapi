@@ -1,14 +1,14 @@
 FROM python:3.9-slim-bullseye
 
 # Install necessary system dependencies for AMPL and solver compilation
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    gfortran \
-    libgmp-dev \
-    && rm -rf /var/lib/apt/lists/*
+# RUN apt-get update && apt-get install -y --no-install-recommends \
+#     build-essential \
+#     gfortran \
+#     libgmp-dev \
+#     && rm -rf /var/lib/apt/lists/*
 
 # Set environment variable for AMPL modules directory
-ENV AMPL_MODULES_DIRECTORY=
+ENV AMPL_MODULES_DIRECTORY=/ampl_modules
 
 # Create the directory for AMPL modules
 RUN mkdir -p ${AMPL_MODULES_DIRECTORY}
