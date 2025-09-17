@@ -1,20 +1,24 @@
 FROM python:3.9-slim-bullseye
 
-# Create and change to the app directory.
+# Create and change to the application directory.
 WORKDIR /app
 
-# Copy local code to the container image.
+# Install required system dependencies using apt, including libgfortran5
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgfortran5 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy local code and requirements file
 COPY . .
 
-# Upgrade pip
-RUN python -m pip install --upgrade pip
+# Upgrade pip and install project dependencies
+RUN python -m pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
-# Install project dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Install amplpy and all necessary amplpy.modules:
-RUN python -m pip install amplpy --no-cache-dir
-RUN python -m amplpy.modules install scip --no-cache-dir
+# Install amplpy, then install AMPL runtime and SCIP into the modules store
+RUN python -m pip install --no-cache-dir amplpy && \
+    python -m amplpy.modules install ampl && \
+    python -m amplpy.modules install scip
 
 # Expose port 8000
 EXPOSE 8000

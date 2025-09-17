@@ -25,49 +25,12 @@ async def root():
     }
 
 
-@app.post("/solve-test")
-async def solve_test():
-    try:
-        ampl = AMPL()
-        ampl.option["solver"] = "scip"
-
-        ampl.eval("""
-            param a;
-            param b;
-            var x >= 0;
-            maximize Objective: a * b * x;
-            subject to limit: x <= b + 0.99;
-        """)
-
-        ampl.param["a"] = 10
-        ampl.param["b"] = 5
-
-        ampl.solve()
-
-        solve_result = ampl.get_value("solve_result")
-        if solve_result != "solved":
-            return {
-                "result": "FAILURE",
-                "error": "Solver failed to solve the model"
-            }
-
-        ampl_objective = ampl.obj["Objective"].value()
-        ampl_x = ampl.var["x"].value()
-
-        return {
-            "objective": ampl_objective,
-            "x": ampl_x
-        }
-    except Exception as e:
-        return {"error": str(e)}
-
-
 @app.post("/solve-a-b")
 async def solve_a_b(payload: ExampleInput, _: str = Depends(verify_token)):
     start_time = datetime.now()
 
     try:
-        # Initialize AMPL
+        # Initialize AMPL (no need to specify solver)
         ampl = AMPL()
 
         # Load the model file
@@ -116,10 +79,8 @@ async def solve_example(payload: ExampleInput, _: str = Depends(verify_token)):
     start_time = datetime.now()
 
     try:
-        # Initialize AMPL
+        # Initialize AMPL with SCIP solver
         ampl = AMPL()
-
-        # Specify the solver
         ampl.option["solver"] = "scip"
 
         # Load the model file
