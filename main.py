@@ -120,7 +120,7 @@ async def solve_example(payload: ExampleInput, _: str = Depends(verify_token)):
         ampl = AMPL()
 
         # Specify the solver
-        # ampl.option["solver"] = "scip"
+        ampl.option["solver"] = "scip"
 
         # Load the model file
         ampl.read("ampl/example.mod")
