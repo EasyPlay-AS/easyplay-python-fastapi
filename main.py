@@ -7,6 +7,7 @@ from fastapi import Depends, FastAPI
 from auth import verify_token
 from models.example.example_input import ExampleInput
 from models.example.example_output import ExampleOutput
+from models.field_optimizer.field_optimizer_input import FieldOptimizerInput
 
 
 # Load environment variables
@@ -149,7 +150,10 @@ async def solve_example(payload: ExampleInput, _: str = Depends(verify_token)):
 
 
 @app.post("/solve-field-optimizer")
-async def solve_field_optimizer(_: str = Depends(verify_token)):
+async def solve_field_optimizer(payload: FieldOptimizerInput, _: str = Depends(verify_token)):
+
+    print("PAYLOAD", payload)
+
     start_time = datetime.now()
 
     try:
