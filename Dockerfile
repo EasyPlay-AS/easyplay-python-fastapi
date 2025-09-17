@@ -18,7 +18,8 @@ RUN python -m pip install --upgrade pip && \
 # Install amplpy, then install AMPL runtime and SCIP into the modules store
 RUN python -m pip install --no-cache-dir amplpy && \
     python -m amplpy.modules install ampl && \
-    python -m amplpy.modules install scip
+    python -m amplpy.modules install scip && \ 
+    python -m amplpy.modules activate 9644d103-8697-465c-8609-bf247c76e681
 
 # Expose port 8000
 EXPOSE 8000
