@@ -14,9 +14,6 @@ load_dotenv()
 # Initialize FastAPI app
 app = FastAPI()
 
-# Activate the AMPL license
-modules.activate("9644d103-8697-465c-8609-bf247c76e681")
-
 
 @app.get("/")
 async def root():
