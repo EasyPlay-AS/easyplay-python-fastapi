@@ -1,4 +1,4 @@
-option solver 'SCIP';
+option solver 'scip';
 option scip_options 'lim:time=10';
 option scip_options 'feastol=1e-6'; #Ensure binary variable values
 option scip_options 'lpfeastol=1e-6'; #Ensure binary variable values
