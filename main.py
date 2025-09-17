@@ -1,4 +1,5 @@
 
+import os
 from datetime import datetime
 from amplpy import AMPL, modules
 from dotenv import load_dotenv
@@ -13,6 +14,23 @@ load_dotenv()
 
 # Initialize FastAPI app
 app = FastAPI()
+
+
+def activate_ampl_license():
+    """Activate AMPL license using environment variable"""
+    license_uuid = os.getenv("AMPL_LICENSE_UUID")
+    if license_uuid:
+        try:
+            modules.activate(license_uuid)
+            print(f"AMPL license activated successfully: {license_uuid}")
+        except Exception as e:
+            print(f"Failed to activate AMPL license: {e}")
+    else:
+        print("No AMPL_LICENSE_UUID found in environment variables")
+
+
+# Activate license when the app starts
+activate_ampl_license()
 
 
 @app.get("/")
@@ -154,6 +172,7 @@ async def solve_field_optimizer(_: str = Depends(verify_token)):
                 "result": "FAILURE",
                 "error": "Solver failed to solve the model"
             }
+
         preference_score = ampl.obj["preference_score"]
         preference_score_value = preference_score.value()
 
