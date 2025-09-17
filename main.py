@@ -128,3 +128,46 @@ async def solve_example(payload: ExampleInput, _: str = Depends(verify_token)):
             "result": "FAILURE",
             "error": str(e)
         }
+
+@app.post("/solve-field-optimizer")
+async def solve_field_optimizer(_: str = Depends(verify_token)):
+    start_time = datetime.now()
+
+    try:
+        # Initialize AMPL with SCIP solver
+        ampl = AMPL()
+        ampl.option["solver"] = "scip"
+        
+        # Load the model file
+        ampl.read("ampl/field_optimizer.mod")
+        ampl.read_data("ampl_data/field_optimizer_test.dat")
+
+        
+        # Solve the model
+        ampl.solve()
+
+        # Check solve result
+        solve_result = ampl.get_value("solve_result")
+        if solve_result != "solved":
+            return {
+                "result": "FAILURE",
+                "error": "Solver failed to solve the model"
+            }        
+        preference_score = ampl.obj["preference_score"]
+        preference_score_value = preference_score.value()
+
+        # Build the response
+        end_time = datetime.now()
+        duration_ms = round((end_time - start_time).total_seconds() * 1000, 2)
+
+        return {
+            "result": "SUCCESS",
+            "preference_score": preference_score_value,
+            "duration_ms": duration_ms
+        }
+    except Exception as e:
+        # Handle errors gracefully
+        return {
+            "result": "FAILURE",
+            "error": str(e)
+        }
