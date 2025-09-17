@@ -1,6 +1,6 @@
 
 from datetime import datetime
-from amplpy import AMPL
+from amplpy import AMPL, modules
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI
 from auth import verify_token
@@ -13,6 +13,9 @@ load_dotenv()
 
 # Initialize FastAPI app
 app = FastAPI()
+
+# Activate the AMPL license
+modules.activate("9644d103-8697-465c-8609-bf247c76e681")
 
 
 @app.get("/")
@@ -129,6 +132,7 @@ async def solve_example(payload: ExampleInput, _: str = Depends(verify_token)):
             "error": str(e)
         }
 
+
 @app.post("/solve-field-optimizer")
 async def solve_field_optimizer(_: str = Depends(verify_token)):
     start_time = datetime.now()
@@ -136,13 +140,13 @@ async def solve_field_optimizer(_: str = Depends(verify_token)):
     try:
         # Initialize AMPL with SCIP solver
         ampl = AMPL()
+
         ampl.option["solver"] = "scip"
-        
+
         # Load the model file
         ampl.read("ampl/field_optimizer.mod")
         ampl.read_data("ampl_data/field_optimizer_test.dat")
 
-        
         # Solve the model
         ampl.solve()
 
@@ -152,7 +156,7 @@ async def solve_field_optimizer(_: str = Depends(verify_token)):
             return {
                 "result": "FAILURE",
                 "error": "Solver failed to solve the model"
-            }        
+            }
         preference_score = ampl.obj["preference_score"]
         preference_score_value = preference_score.value()
 
