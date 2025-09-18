@@ -164,7 +164,41 @@ async def solve_field_optimizer(payload: FieldOptimizerInput, _: str = Depends(v
 
         # Load the model file
         ampl.read("ampl/field_optimizer.mod")
-        ampl.read_data("ampl_data/field_optimizer_test.dat")
+
+        # ------
+        # Set data from JSON payload instead of reading .dat file
+        # ------
+
+        # Set basic sets
+        ampl.set["F"] = [field.name for field in payload.fields]
+        ampl.set["G"] = [group.name for group in payload.groups]
+        ampl.set["T"] = payload.time_slots
+
+        # Set available starting times for each group (AT)
+        for group in payload.groups:
+            ampl.set["AT"][group.name] = group.possible_start_times
+
+        # Set preferred starting times for each group (PT)
+        for group in payload.groups:
+            ampl.set["PT"][group.name] = group.preferred_start_times
+
+        # Set unavailable times for each field (UT)
+        for field in payload.fields:
+            ampl.set["UT"][field.name] = field.unavailable_start_times
+
+        # Set group parameters
+        for group in payload.groups:
+            ampl.param["d"][group.name] = group.duration
+            ampl.param["n_min"][group.name] = group.minimum_number_of_activities
+            ampl.param["n_max"][group.name] = group.maximum_number_of_activities
+            ampl.param["size_req"][group.name] = group.size_required
+            ampl.param["prio"][group.name] = group.priority
+            ampl.param["p_st1"][group.name] = group.preferred_start_time_activity_1
+            ampl.param["p_st2"][group.name] = group.preferred_start_time_activity_2
+
+        # Set field parameters
+        for field in payload.fields:
+            ampl.param["size"][field.name] = field.size
 
         # Solve the model
         ampl.solve()
