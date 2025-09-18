@@ -152,8 +152,6 @@ async def solve_example(payload: ExampleInput, _: str = Depends(verify_token)):
 @app.post("/solve-field-optimizer")
 async def solve_field_optimizer(payload: FieldOptimizerInput, _: str = Depends(verify_token)):
 
-    print("PAYLOAD", payload)
-
     start_time = datetime.now()
 
     try:
