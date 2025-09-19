@@ -212,14 +212,29 @@ async def solve_field_optimizer(payload: FieldOptimizerInput, _: str = Depends(v
         preference_score = ampl.obj["preference_score"]
         preference_score_value = preference_score.value()
 
+        # Extract allocations: which fields and timeslots are occupied by which groups
+        field_allocations = []
+        x_var = ampl.get_variable("x")
+        x_values = x_var.get_values()
+        for index, value in x_values.to_dict().items():  # `.to_dict()` converts the data to a dictionary
+            if value > 0.5:  # Check if the binary variable is effectively "1"
+                # Index contains the tuple (field, group, timeslot)
+                f, g, t = index
+                field_allocations.append({
+                    "field": f,
+                    "group": g,
+                    "timeslot": int(t)  # Ensure timeslot returns as an integer
+                })
+
         # Build the response
         end_time = datetime.now()
         duration_ms = round((end_time - start_time).total_seconds() * 1000, 2)
 
         return {
             "result": "SUCCESS",
+            "duration_ms": duration_ms,
             "preference_score": preference_score_value,
-            "duration_ms": duration_ms
+            "field_allocations": field_allocations,
         }
     except Exception as e:
         # Handle errors gracefully
