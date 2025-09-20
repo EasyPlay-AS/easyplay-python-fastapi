@@ -1,0 +1,74 @@
+from models.field_optimizer.field_allocation import FieldAllocation
+from models.field_optimizer.field_activity import FieldActivity
+
+
+def group_activities_by_consecutive_timeslots(
+    field_allocations: list[FieldAllocation]
+) -> list[FieldActivity]:
+    """
+    Groups consecutive timeslots for the same group on the same field into activity blocks.
+
+    Args:
+        field_allocations: List of FieldAllocation objects
+
+    Returns:
+        List of FieldActivity objects representing grouped activities
+    """
+    if not field_allocations:
+        return []
+
+    # Sort by field, group, then timeslot to ensure proper grouping
+    sorted_data = sorted(field_allocations, key=lambda x: (
+        x.field, x.group, x.timeslot))
+
+    activities = []
+    current_activity = None
+
+    for item in sorted_data:
+        field = item.field
+        group = item.group
+        timeslot = item.timeslot
+
+        if current_activity is None:
+            # Start a new block
+            current_activity = {
+                'field': field,
+                'group': group,
+                'start_timeslot': timeslot,
+                'end_timeslot': timeslot
+            }
+        elif (current_activity['field'] == field and
+              current_activity['group'] == group and
+              timeslot == current_activity['end_timeslot'] + 1):
+            # Extend current block (consecutive timeslot)
+            current_activity['end_timeslot'] = timeslot
+        else:
+            # Finish current block and start a new one
+            activities.append(FieldActivity(
+                field=current_activity['field'],
+                group=current_activity['group'],
+                start_timeslot=current_activity['start_timeslot'],
+                end_timeslot=current_activity['end_timeslot'],
+                duration=current_activity['end_timeslot'] -
+                current_activity['start_timeslot'] + 1
+            ))
+
+            current_activity = {
+                'field': field,
+                'group': group,
+                'start_timeslot': timeslot,
+                'end_timeslot': timeslot
+            }
+
+    # Don't forget the last block
+    if current_activity is not None:
+        activities.append(FieldActivity(
+            field=current_activity['field'],
+            group=current_activity['group'],
+            start_timeslot=current_activity['start_timeslot'],
+            end_timeslot=current_activity['end_timeslot'],
+            duration=current_activity['end_timeslot'] -
+            current_activity['start_timeslot'] + 1
+        ))
+
+    return activities
