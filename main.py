@@ -1,7 +1,8 @@
+import os
+from amplpy import modules
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI
 from auth import verify_token
-from utils.ampl_utils import activate_ampl_license
 from models.example.example_input import ExampleInput
 from models.field_optimizer.field_optimizer_input import FieldOptimizerInput
 from services.example_service import ExampleService
@@ -16,6 +17,19 @@ app = FastAPI()
 
 
 # Activate license when the app starts
+def activate_ampl_license():
+    """Activate AMPL license using environment variable"""
+    license_uuid = os.getenv("AMPL_LICENSE_UUID")
+    if license_uuid:
+        try:
+            modules.activate(license_uuid)
+            print(f"AMPL license activated successfully: {license_uuid}")
+        except Exception as e:
+            print(f"Failed to activate AMPL license: {e}")
+    else:
+        print("No AMPL_LICENSE_UUID found in environment variables")
+
+
 activate_ampl_license()
 
 
