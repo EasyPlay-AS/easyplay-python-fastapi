@@ -7,3 +7,4 @@ class FieldActivity(BaseModel):
     start_timeslot: int
     end_timeslot: int
     duration: int
+    size: int
