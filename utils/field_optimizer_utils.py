@@ -28,6 +28,7 @@ def group_activities_by_consecutive_timeslots(
         field = item.field
         group = item.group
         timeslot = item.timeslot
+        size = item.size
 
         if current_activity is None:
             # Start a new block
@@ -35,7 +36,8 @@ def group_activities_by_consecutive_timeslots(
                 'field': field,
                 'group': group,
                 'start_timeslot': timeslot,
-                'end_timeslot': timeslot
+                'end_timeslot': timeslot,
+                'size': size
             }
         elif (current_activity['field'] == field and
               current_activity['group'] == group and
@@ -50,14 +52,16 @@ def group_activities_by_consecutive_timeslots(
                 start_timeslot=current_activity['start_timeslot'],
                 end_timeslot=current_activity['end_timeslot'],
                 duration=current_activity['end_timeslot'] -
-                current_activity['start_timeslot'] + 1
+                current_activity['start_timeslot'] + 1,
+                size=current_activity['size']
             ))
 
             current_activity = {
                 'field': field,
                 'group': group,
                 'start_timeslot': timeslot,
-                'end_timeslot': timeslot
+                'end_timeslot': timeslot,
+                'size': size
             }
 
     # Don't forget the last block
@@ -68,7 +72,8 @@ def group_activities_by_consecutive_timeslots(
             start_timeslot=current_activity['start_timeslot'],
             end_timeslot=current_activity['end_timeslot'],
             duration=current_activity['end_timeslot'] -
-            current_activity['start_timeslot'] + 1
+            current_activity['start_timeslot'] + 1,
+            size=current_activity['size']
         ))
 
     return activities

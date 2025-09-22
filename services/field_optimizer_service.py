@@ -74,15 +74,23 @@ class FieldOptimizerService:
             field_allocations: list[FieldAllocation] = []
             x_var = ampl.get_variable("x")
             x_values = x_var.get_values()
-            for index, value in x_values.to_dict().items():  # `.to_dict()` converts the data to a dictionary
-                if value > 0.5:  # Check if the binary variable is effectively "1"
+
+            # Create a lookup dictionary for group size requirements
+            group_size_requirement_lookup = {
+                group.name: group.size_required for group in payload.groups}
+
+            for index, value in x_values.to_dict().items():
+                # Check if the binary variable is effectively "1"
+                if value > 0.5:
                     # Index contains the tuple (field, group, timeslot)
                     f, g, t = index
+                    size = group_size_requirement_lookup.get(g, 0)
+
                     field_allocations.append(FieldAllocation(
                         field=f,
                         group=g,
-                        # Ensure timeslot returns as an integer
-                        timeslot=int(t)
+                        timeslot=int(t),
+                        size=size
                     ))
 
             activities = group_activities_by_consecutive_timeslots(
