@@ -40,7 +40,8 @@ sum {f in F, g in G, t in PT[g]} y[f,g,t]*preference_value # Sum of activity sta
 ;
 
 
-<!-- # Handle logic for first timeslot of the week
+/*
+# Handle logic for first timeslot of the week
 subject to activity_can_start_timeslot_1 {f in F, g in G}:
 	x[f,g,1] <= y[f,g,1];
 
@@ -78,8 +79,8 @@ subject to activity_can_not_start {g in G, t in T diff AT[g]}:
 
 # Field capacity
 subject to field_capacity {t in T, f in F}:
-	sum {g in G} x[f,g,t]*size_req[g] <= size[f]; -->
-
+	sum {g in G} x[f,g,t]*size_req[g] <= size[f];
+*/
 
 #Max one activity per day
 subject to day1 {g in G}:
