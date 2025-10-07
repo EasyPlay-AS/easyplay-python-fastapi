@@ -28,7 +28,19 @@ class FieldOptimizerService:
             # Set basic sets
             ampl.set["F"] = [field.name for field in payload.fields]
             ampl.set["G"] = [group.name for group in payload.groups]
-            ampl.set["T"] = payload.time_slots
+
+            # Flatten all time slots for set T
+            all_timeslots = []
+            for day_slots in payload.time_slots:
+                all_timeslots.extend(day_slots)
+            ampl.set["T"] = all_timeslots
+
+            # Set up days
+            ampl.set["D"] = list(range(1, len(payload.time_slots) + 1))
+
+            # Set time slots for each day
+            for day_idx, day_slots in enumerate(payload.time_slots, start=1):
+                ampl.set["TD"][day_idx] = day_slots
 
             # Set available starting times for each group (AT)
             for group in payload.groups:

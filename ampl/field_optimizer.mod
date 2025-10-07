@@ -7,7 +7,11 @@ option scip_options 'pre:settings=3'; #Disable presolving prevents relaxation of
 
 set F; #FIELDS
 set G; #GROUPS
+
 set T; #TIMESLOTS
+set D; # Days
+set TD {D} within T; # Time slots for each day
+
 set AT {G} within T; #AVAILABLE STARTING TIMESLOTS FOR EACH GROUP
 set PT {G} within T; #PREFERED STARTING TIMESLOTS (enten denne eller parametre p_st1 osv.)
 set UT {F} within T; #UNAVAILABLE STARTING TIMES FOR EACH FIELD
@@ -78,20 +82,12 @@ subject to activity_can_not_start {g in G, t in T diff AT[g]}:
 subject to field_capacity {t in T, f in F}:
 	sum {g in G} x[f,g,t]*size_req[g] <= size[f];
 
-
-#Max one activity per day
-subject to day1 {g in G}:
-	sum {t in 1..36, f in F} y[f,g,t] <= 1;
-subject to day2 {g in G}:
-	sum {t in 37..72, f in F} y[f,g,t] <= 1;
-subject to day3 {g in G}:
-	sum {t in 73..108, f in F} y[f,g,t] <= 1;
-subject to day4 {g in G}:
-	sum {t in 109..144, f in F} y[f,g,t] <= 1;
-subject to day5 {g in G}:
-	sum {t in 145..180, f in F} y[f,g,t] <= 1;
+# Max one activity per day
+subject to one_activity_per_day {g in G, d in D}:
+    sum {t in TD[d], f in F} y[f,g,t] <= 1;
 
 
+	
 
 
 
@@ -120,4 +116,15 @@ subject to day5 {g in G}:
 #	sum {delta in 0..d[g]} x[f,g,t+delta] <= d[g];
 
 
+#Max one activity per day
+#subject to day1 {g in G}:
+#	sum {t in 1..36, f in F} y[f,g,t] <= 1;
+#subject to day2 {g in G}:
+#	sum {t in 37..72, f in F} y[f,g,t] <= 1;
+#subject to day3 {g in G}:
+#	sum {t in 73..108, f in F} y[f,g,t] <= 1;
+#subject to day4 {g in G}:
+#	sum {t in 109..144, f in F} y[f,g,t] <= 1;
+#subject to day5 {g in G}:
+#	sum {t in 145..180, f in F} y[f,g,t] <= 1;
 
