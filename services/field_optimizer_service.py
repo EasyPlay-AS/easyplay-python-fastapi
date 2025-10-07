@@ -35,8 +35,8 @@ class FieldOptimizerService:
                 all_timeslots.extend(day_slots)
             ampl.set["T"] = all_timeslots
 
-            # Set number of days
-            ampl.param["num_days"] = len(payload.time_slots)
+            # Set up days (explicitly set D)
+            ampl.set["D"] = list(range(1, len(payload.time_slots) + 1))
 
             # Set time slots for each day
             for day_idx, day_slots in enumerate(payload.time_slots, start=1):

@@ -9,8 +9,7 @@ set F; #FIELDS
 set G; #GROUPS
 set T; #TIMESLOTS
 
-param num_days >= 1;
-set D = 1..num_days; # Days
+set D; # Days
 set TD {D} within T; # Time slots for each day
 
 set AT {G} within T; #AVAILABLE STARTING TIMESLOTS FOR EACH GROUP
