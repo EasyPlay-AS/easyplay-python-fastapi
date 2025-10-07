@@ -8,10 +8,9 @@ option scip_options 'pre:settings=3'; #Disable presolving prevents relaxation of
 set F; #FIELDS
 set G; #GROUPS
 set T; #TIMESLOTS
+set D; #DAYS
 
-set D; # Days
-set TD {D} within T; # Time slots for each day
-
+set DT {D} within T; #ALL TIMESLOTS FOR EACH DAY
 set AT {G} within T; #AVAILABLE STARTING TIMESLOTS FOR EACH GROUP
 set PT {G} within T; #PREFERED STARTING TIMESLOTS (enten denne eller parametre p_st1 osv.)
 set UT {F} within T; #UNAVAILABLE STARTING TIMES FOR EACH FIELD
@@ -83,8 +82,8 @@ subject to field_capacity {t in T, f in F}:
 	sum {g in G} x[f,g,t]*size_req[g] <= size[f];
 
 # Max one activity per day
-subject to one_activity_per_day {g in G, d in D}:
-    sum {t in TD[d], f in F} y[f,g,t] <= 1;
+subject to one_activity_per_day {g in G, day in D}:
+    sum {t in DT[day], f in F} y[f,g,t] <= 1;
 
 
 
