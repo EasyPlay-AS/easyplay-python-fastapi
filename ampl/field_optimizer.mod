@@ -7,9 +7,10 @@ option scip_options 'pre:settings=3'; #Disable presolving prevents relaxation of
 
 set F; #FIELDS
 set G; #GROUPS
-
 set T; #TIMESLOTS
-set D; # Days
+
+param num_days >= 1;
+set D = 1..num_days; # Days
 set TD {D} within T; # Time slots for each day
 
 set AT {G} within T; #AVAILABLE STARTING TIMESLOTS FOR EACH GROUP
@@ -87,7 +88,7 @@ subject to one_activity_per_day {g in G, d in D}:
     sum {t in TD[d], f in F} y[f,g,t] <= 1;
 
 
-	
+
 
 
 
