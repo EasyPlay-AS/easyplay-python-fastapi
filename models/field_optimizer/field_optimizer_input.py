@@ -23,4 +23,4 @@ class Group(BaseModel):
 class FieldOptimizerInput(BaseModel):
     fields: list[Field]
     groups: list[Group]
-    time_slots: list[int]
+    time_slots: list[list[int]]
