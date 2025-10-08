@@ -41,7 +41,7 @@ var y {F,G,T} binary;
 maximize preference_score: 
 sum {f in F, g in G, t in T} y[f,g,t]*prio[g] + # Sum of  activity starts
 sum {f in F, g in G, t in PT[g]} y[f,g,t]*preference_value # Sum of activity starts at preferred starting time
-;
+
 # Handle logic for first timeslot of the week
 subject to activity_can_start_timeslot_1 {f in F, g in G}:
 	x[f,g,1] <= y[f,g,1];
@@ -55,8 +55,8 @@ subject to activity_duration {f in F, g in G, t in T: t >= d[g]}:
 	x[f,g,t] = sum {delta in 0..d[g]-1} y[f,g,t-delta];
 
 # Activities must last the required duration for each group
-#subject to activity_duration {f in F, g in G, t in T: t <= T_max - d[g]}:
-#	sum {delta in 0..d[g]-1} x[f,g,t+delta] =  d[g] * y[f,g,t];
+subject to activity_duration {f in F, g in G, t in T: t <= T_max - d[g]}:
+	sum {delta in 0..d[g]-1} x[f,g,t+delta] =  d[g] * y[f,g,t];
 	
 # Same group can only occupy one field at a time
 subject to field_cannot_change {g in G, t in T}:
