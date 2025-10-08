@@ -38,9 +38,11 @@ var x {F,G,T} binary;
 var y {F,G,T} binary;
 
 
+# Sum of activity starts + sum of activity starts at preferred starting time
 maximize preference_score: 
-sum {f in F, g in G, t in T} y[f,g,t]*prio[g] + # Sum of  activity starts
-sum {f in F, g in G, t in PT[g]} y[f,g,t]*preference_value # Sum of activity starts at preferred starting time
+sum {f in F, g in G, t in T} y[f,g,t]*prio[g] + 
+sum {f in F, g in G, t in PT[g]} y[f,g,t]*preference_value;
+
 
 # Handle logic for first timeslot of the week
 subject to activity_can_start_timeslot_1 {f in F, g in G}:
