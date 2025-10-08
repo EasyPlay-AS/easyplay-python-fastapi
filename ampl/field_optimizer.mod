@@ -53,12 +53,12 @@ subject to activity_continuity {f in F, g in G, t in T: t >= 2}:
 	x[f,g,t] <= x[f,g,t-1]+y[f,g,t];
 
 # Activities must last the required duration for each group
-#subject to activity_duration {f in F, g in G, t in T: t >= d[g]}:
-#	x[f,g,t] = sum {delta in 0..d[g]-1} y[f,g,t-delta];
+subject to activity_duration {f in F, g in G, t in T: t >= d[g]}:
+	x[f,g,t] = sum {delta in 0..d[g]-1} y[f,g,t-delta];
 
 # Activities must last the required duration for each group
-subject to activity_duration {f in F, g in G, t in T: t <= T_max - d[g]}:
-	sum {delta in 0..d[g]-1} x[f,g,t+delta] =  d[g] * y[f,g,t];
+#subject to activity_duration {f in F, g in G, t in T: t <= T_max - d[g]}:
+#	sum {delta in 0..d[g]-1} x[f,g,t+delta] =  d[g] * y[f,g,t];
 	
 # Same group can only occupy one field at a time
 subject to field_cannot_change {g in G, t in T}:
