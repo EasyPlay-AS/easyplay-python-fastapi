@@ -9,6 +9,7 @@ set F; #FIELDS
 set G; #GROUPS
 set T; #TIMESLOTS
 set D; #DAYS
+set ST within T; #START TIMESLOTS FOR EACH DAY
 
 set DT {D} within T; #ALL TIMESLOTS FOR EACH DAY
 set AT {G} within T; #AVAILABLE STARTING TIMESLOTS FOR EACH GROUP
@@ -85,6 +86,6 @@ subject to field_capacity {t in T, f in F}:
 subject to one_activity_per_day {g in G, day in D}:
     sum {t in DT[day], f in F} y[f,g,t] <= 1;
 
-# Activity must fit within same day.
-subject to activity_fit_within_same_day {g in G, day in D, f in F, t in DT[day]}:
-    y[f,g,t] * (t + d[g] - 1) <= y[f,g,t] * max{tau in DT[day]} tau;
+# Activity must fit within same day
+subject to activity_fit_within_same_day {f in F, g in G, st in ST}:
+    x[f,g,st] <= y[f,g,st];
