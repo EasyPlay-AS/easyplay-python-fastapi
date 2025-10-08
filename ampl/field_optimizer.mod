@@ -53,8 +53,8 @@ subject to activity_continuity {f in F, g in G, t in T: t >= 2}:
 	x[f,g,t] <= x[f,g,t-1]+y[f,g,t];
 
 # Activities must last the required duration for each group take 3
-subject to activity_duration {g in G, day in D}:
-    sum {t in DT[day], f in F} x[f,g,t] = sum {t in DT[day], f in F} y[f,g,t] * d[g];
+subject to activity_duration {f in F, g in G, day in D}:
+    sum {t in DT[day]} x[f,g,t] = sum {t in DT[day]} y[f,g,t] * d[g];
 	
 # Same group can only occupy one field at a time
 subject to field_cannot_change {g in G, t in T}:
