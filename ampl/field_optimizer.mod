@@ -7,14 +7,14 @@ option scip_options 'pre:settings=3'; #Disable presolving prevents relaxation of
 
 set F; #FIELDS
 set G; #GROUPS
-set T; #TIMESLOTS
-set D; #DAYS
-set ST within T; #START TIMESLOTS FOR EACH DAY
+set T ordered; #TIMESLOTS
+set D ordered; #DAYS
+set ST within T ordered; #START TIMESLOTS FOR EACH DAY
 
-set DT {D} within T; #ALL TIMESLOTS FOR EACH DAY
-set AT {G} within T; #AVAILABLE STARTING TIMESLOTS FOR EACH GROUP
-set PT {G} within T; #PREFERED STARTING TIMESLOTS (enten denne eller parametre p_st1 osv.)
-set UT {F} within T; #UNAVAILABLE STARTING TIMES FOR EACH FIELD
+set DT {D} within T ordered; #ALL TIMESLOTS FOR EACH DAY
+set AT {G} within T ordered; #AVAILABLE STARTING TIMESLOTS FOR EACH GROUP
+set PT {G} within T ordered; #PREFERED STARTING TIMESLOTS (enten denne eller parametre p_st1 osv.)
+set UT {F} within T ordered; #UNAVAILABLE STARTING TIMES FOR EACH FIELD
 
 #System parameters
 param T_max = max {t in T} t;
