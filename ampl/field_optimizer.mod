@@ -19,6 +19,7 @@ set UT {F} within T; #UNAVAILABLE STARTING TIMES FOR EACH FIELD
 #System parameters
 param T_max = max {t in T} t;
 param T_min = min {t in T} t;
+param last_t {day in D} := max {t in DT[day]} t;
 param preference_value = 1;
 #param square_value = 0.1 #value of square occupied
 
@@ -89,5 +90,9 @@ subject to one_activity_per_day {g in G, day in D}:
     sum {t in DT[day], f in F} y[f,g,t] <= 1;
 
 # Activity must fit within same day
-subject to activity_fit_within_same_day {f in F, g in G, st in ST}:
-    x[f,g,st] <= y[f,g,st];
+#subject to activity_fit_within_same_day {f in F, g in G, st in ST}:
+#    x[f,g,st] <= y[f,g,st];
+
+# Activity may not start too late
+subject to no_late_starts {f in F, g in G, day in D, s in DT[day] : s + d[g] - 1 > last_t[day]}:
+	y[f,g,s] = 0;
