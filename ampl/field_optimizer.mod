@@ -45,20 +45,24 @@ sum {f in F, g in G, t in PT[g]} y[f,g,t]*preference_value;
 
 
 # Handle logic for first timeslot of the week
-subject to activity_can_start_timeslot_1 {f in F, g in G}:
-	x[f,g,1] <= y[f,g,1];
+#subject to activity_can_start_timeslot_1 {f in F, g in G}:
+#	x[f,g,1] <= y[f,g,1];
 
 # Time slot occupied only if team started same timeslot or occupied last timeslot	
-subject to activity_continuity {f in F, g in G, t in T: t >= 2}:
-	x[f,g,t] <= x[f,g,t-1]+y[f,g,t];
+#subject to activity_continuity {f in F, g in G, t in T: t >= 2}:
+#	x[f,g,t] <= x[f,g,t-1]+y[f,g,t];
 
 # Activities must last the required duration for each group take 3
-subject to activity_duration {f in F, g in G, day in D}:
-    sum {t in DT[day]} x[f,g,t] = sum {t in DT[day]} y[f,g,t] * d[g];
+#subject to activity_duration {f in F, g in G, day in D}:
+#    sum {t in DT[day]} x[f,g,t] = sum {t in DT[day]} y[f,g,t] * d[g];
 	
 # Same group can only occupy one field at a time
 subject to field_cannot_change {g in G, t in T}:
 	sum {f in F} x[f,g,t] <= 1;
+
+# Handle continuity and duration of activities
+subject to activity_continuity_and_duration {f in F, g in G, day in D, t in DT[day]}:
+	sum {s in DT[day]: s<=t and s+d[g]-1 >= t} y[f,g,s] = x[f,g,t];
 
 # Maximum activities for a team
 subject to max_activities {g in G}:
