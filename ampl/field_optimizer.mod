@@ -4,14 +4,7 @@ option solver 'scip';
 #option scip_options 'lpfeastol=1e-6'; #Ensure binary variable values
 #option scip_options 'dualfeastol=1e-6'; #Ensure binary variable values
 #option scip_options 'pre:settings=3'; #Disable presolving prevents relaxation of constraints
-option scip_options '
-  limits/time=30
-  presolving/maxrounds=10
-  separating/maxroundsroot=20
-  separating/maxrounds=10
-  separating/maxcutsroot=-1
-  separating/maxcuts=-1
-';
+option scip_options 'limits/time=30';
 
 
 
