@@ -3,7 +3,7 @@ option scip_options 'lim:time=10';
 option scip_options 'feastol=1e-6'; #Ensure binary variable values
 option scip_options 'lpfeastol=1e-6'; #Ensure binary variable values
 option scip_options 'dualfeastol=1e-6'; #Ensure binary variable values
-option scip_options 'pre:settings=3'; #Disable presolving prevents relaxation of constraints
+option scip_options 'pre:settings=3 lim:time=10'; #Disable presolving prevents relaxation of constraints
 
 
 
