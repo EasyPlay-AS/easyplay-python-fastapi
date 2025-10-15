@@ -1,0 +1,60 @@
+{
+  "stadiums": [
+    {
+      "id": "sv5oCUqmNpacKVEOTp5w",
+      "name": "Nadderud kunstgress 1",
+      "size": 16,
+      "unavailable_start_times": []
+    },
+    {
+      "id": "0a973752-0ad5-4f50-a348-20c1c2d8f1e3",
+      "name": "Fotballbanen NY!",
+      "size": 16,
+      "unavailable_start_times": []
+    }
+  ],
+  "teams": [
+    {
+      "id": "093e1c3e-0685-4293-a5c2-80966c27364c",
+      "name": "Test_LAG",
+      "duration": 4,
+      "is_included": true,
+      "min_number_of_activities": 7,
+      "max_number_of_activities": 7,
+      "priority": 1,
+      "size_required": 8
+    },
+    {
+      "id": "ea685da4-eb2d-4309-9b09-0da6c620e88e",
+      "name": "TEST 2",
+      "duration": 4,
+      "is_included": true,
+      "min_number_of_activities": 7,
+      "max_number_of_activities": 7,
+      "priority": 1,
+      "size_required": 8
+    },
+    {
+      "id": "a555a4b6-9ddd-4e05-a3dd-31b6a9e59480",
+      "name": "Høvik/Stabæk",
+      "duration": 4,
+      "is_included": true,
+      "min_number_of_activities": 7,
+      "max_number_of_activities": 7,
+      "priority": 1,
+      "size_required": 8
+    },
+    {
+      "id": "a555a4b6-9ddd-4e05-a3dd-31b6a9e59480",
+      "name": "Høvik/Stabæk 2",
+      "duration": 8,
+      "is_included": true,
+      "min_number_of_activities": 7,
+      "max_number_of_activities": 7,
+      "priority": 1,
+      "size_required": 8
+    }
+  ],
+  "start_time": "00:00",
+  "end_time": "04:00"
+}

@@ -2,11 +2,17 @@ from models.field_optimizer.field_allocation import FieldAllocation
 from models.field_optimizer.field_activity import FieldActivity
 
 
-def group_activities_by_consecutive_timeslots(
-    field_allocations: list[FieldAllocation]
+# TODO:
+# - Make sure timeslotIds to an activity is within same day,
+# - else stop look for next timeslot
+
+def convert_field_allocations_to_activities(
+    field_allocations: list[FieldAllocation],
+    timeslot_ids: list[list[int]]
 ) -> list[FieldActivity]:
     """
-    Groups consecutive timeslots for the same group on the same field into activity blocks.
+    Convert field allocations to activities by grouping consecutive timeslots
+    for the same group on the same field into activity blocks.
 
     Args:
         field_allocations: List of FieldAllocation objects
@@ -19,7 +25,7 @@ def group_activities_by_consecutive_timeslots(
 
     # Sort by field, group, then timeslot to ensure proper grouping
     sorted_data = sorted(field_allocations, key=lambda x: (
-        x.field, x.group, x.timeslot))
+        x.field, x.group, x.timeslot_id))
 
     activities = []
     current_activity = None
@@ -27,7 +33,7 @@ def group_activities_by_consecutive_timeslots(
     for item in sorted_data:
         field = item.field
         group = item.group
-        timeslot = item.timeslot
+        timeslot_id = item.timeslot_id
         size = item.size
 
         if current_activity is None:
@@ -35,15 +41,15 @@ def group_activities_by_consecutive_timeslots(
             current_activity = {
                 'field': field,
                 'group': group,
-                'start_timeslot': timeslot,
-                'end_timeslot': timeslot,
+                'start_timeslot': timeslot_id,
+                'end_timeslot': timeslot_id,
                 'size': size
             }
         elif (current_activity['field'] == field and
               current_activity['group'] == group and
-              timeslot == current_activity['end_timeslot'] + 1):
+              timeslot_id == current_activity['end_timeslot'] + 1):
             # Extend current block (consecutive timeslot)
-            current_activity['end_timeslot'] = timeslot
+            current_activity['end_timeslot'] = timeslot_id
         else:
             # Finish current block and start a new one
             activities.append(FieldActivity(
@@ -59,8 +65,8 @@ def group_activities_by_consecutive_timeslots(
             current_activity = {
                 'field': field,
                 'group': group,
-                'start_timeslot': timeslot,
-                'end_timeslot': timeslot,
+                'start_timeslot': timeslot_id,
+                'end_timeslot': timeslot_id,
                 'size': size
             }
 
