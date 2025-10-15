@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from fastapi import Depends, FastAPI
 from auth import verify_token
 from models.example.example_input import ExampleInput
-from models.field_optimizer.field_optimizer_input import FieldOptimizerInput
+from models.field_optimizer.field_optimizer_payload import FieldOptimizerPayload
 from services.example_service import ExampleService
 from services.field_optimizer_service import FieldOptimizerService
 
@@ -56,6 +56,6 @@ async def solve_example(payload: ExampleInput, _: str = Depends(verify_token)):
 
 
 @app.post("/solve-field-optimizer")
-async def solve_field_optimizer(payload: FieldOptimizerInput, _: str = Depends(verify_token)):
+async def solve_field_optimizer(payload: FieldOptimizerPayload, _: str = Depends(verify_token)):
     result = FieldOptimizerService.solve(payload)
     return result
