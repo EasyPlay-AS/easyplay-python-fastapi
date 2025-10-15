@@ -5,22 +5,22 @@ class Stadium(BaseModel):
     id: str
     name: str
     size: int
-    unavailableStartTimes: list[int]
+    unavailable_start_times: list[int]
 
 
 class Team(BaseModel):
     id: str
     name: str
-    minNumberOfActivities: int
-    maxNumberOfActivities: int
+    min_number_of_activities: int
+    max_number_of_activities: int
     duration: int
-    sizeRequired: int
+    size_required: int
     priority: int
-    isIncluded: bool
+    is_included: bool
 
 
 class FieldOptimizerPayload(BaseModel):
     stadiums: list[Stadium]
     teams: list[Team]
-    startTime: str
-    endTime: str
+    start_time: str
+    end_time: str

@@ -23,7 +23,7 @@ def convert_payload_to_input(
         payload: FieldOptimizerPayload
 ) -> ConvertedPayload:
     time_slots_in_range = generate_time_slots_in_range(
-        payload.startTime, payload.endTime, TIME_SLOT_DURATION_MINUTES)
+        payload.start_time, payload.end_time, TIME_SLOT_DURATION_MINUTES)
 
     timeslot_ids_by_week_day = get_timeslot_ids_by_week_day(
         time_slots_in_range)
@@ -54,13 +54,13 @@ def convert_payload_to_input(
 
         groups.append(Group(
             name=team.name,
-            minimum_number_of_activities=team.minNumberOfActivities,
-            maximum_number_of_activities=team.maxNumberOfActivities,
+            minimum_number_of_activities=team.min_number_of_activities,
+            maximum_number_of_activities=team.max_number_of_activities,
             possible_start_times=possible_start_times,
             preferred_start_times=preferred_start_times,
             preferred_start_time_activity_1=0,
             preferred_start_time_activity_2=0,
-            size_required=team.sizeRequired,
+            size_required=team.size_required,
             duration=team.duration,
             priority=team.priority
         ))
