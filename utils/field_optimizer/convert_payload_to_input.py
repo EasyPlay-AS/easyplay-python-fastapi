@@ -1,0 +1,82 @@
+import itertools
+from pydantic import BaseModel
+
+from models.field_optimizer.field_optimizer_payload import FieldOptimizerPayload
+from models.field_optimizer.field_optimizer_input import FieldOptimizerInput, Field, Group
+from models.field_optimizer.time_slot import TimeSlot
+
+from utils.time_slots.generate_time_slots_in_range import generate_time_slots_in_range
+from utils.time_slots.get_timeslot_ids_by_week_day import get_timeslot_ids_by_week_day
+from utils.common import create_number_to_index_mapping
+
+TIME_SLOT_DURATION_MINUTES = 15
+
+
+class ConvertedPayload(BaseModel):
+    field_optimizer_input: FieldOptimizerInput
+    time_slots_in_range: list[TimeSlot]
+    index_to_timeslot_map: dict[int, int]
+    time_slot_duration_minutes: int
+
+
+def convert_payload_to_input(
+        payload: FieldOptimizerPayload
+) -> ConvertedPayload:
+    time_slots_in_range = generate_time_slots_in_range(
+        payload.startTime, payload.endTime, TIME_SLOT_DURATION_MINUTES)
+
+    timeslot_ids_by_week_day = get_timeslot_ids_by_week_day(
+        time_slots_in_range)
+    timeslot_ids = list(itertools.chain(*timeslot_ids_by_week_day))
+
+    mapping = create_number_to_index_mapping(timeslot_ids)
+    timeslot_to_index_map = mapping['number_to_index_map']
+    index_to_timeslot_map = mapping['index_to_number_map']
+
+    fields = []
+    for stadium in payload.stadiums:
+        fields.append(Field(
+            name=stadium.name,
+            size=stadium.size,
+            unavailable_start_times=[]
+        ))
+
+    groups = []
+    for team in payload.teams:
+        # TODO: when ready, replace "timeslot_id" with "team.possible_start_times"
+        possible_start_times = [
+            timeslot_to_index_map[timeslot_id]
+            for timeslot_id in timeslot_ids
+        ]
+
+        # TODO: when ready, use "team.preferred_start_times"
+        preferred_start_times = []
+
+        groups.append(Group(
+            name=team.name,
+            minimum_number_of_activities=team.minNumberOfActivities,
+            maximum_number_of_activities=team.maxNumberOfActivities,
+            possible_start_times=possible_start_times,
+            preferred_start_times=preferred_start_times,
+            preferred_start_time_activity_1=0,
+            preferred_start_time_activity_2=0,
+            size_required=team.sizeRequired,
+            duration=team.duration,
+            priority=team.priority
+        ))
+
+    timeslot_ids_indexes = [
+        [timeslot_to_index_map[timeslot_id] for timeslot_id in timeslot_ids]
+        for timeslot_ids in timeslot_ids_by_week_day
+    ]
+
+    return ConvertedPayload(
+        field_optimizer_input=FieldOptimizerInput(
+            fields=fields,
+            groups=groups,
+            time_slots=timeslot_ids_indexes
+        ),
+        time_slots_in_range=time_slots_in_range,
+        index_to_timeslot_map=index_to_timeslot_map,
+        time_slot_duration_minutes=TIME_SLOT_DURATION_MINUTES
+    )
