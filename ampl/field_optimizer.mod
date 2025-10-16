@@ -16,7 +16,7 @@ set ST within T ordered; #START TIMESLOTS FOR EACH DAY
 set DT {D} within T ordered; #ALL TIMESLOTS FOR EACH DAY
 set AT {G} within T ordered; #AVAILABLE STARTING TIMESLOTS FOR EACH GROUP
 set PT {G} within T ordered; #PREFERED STARTING TIMESLOTS (enten denne eller parametre p_st1 osv.)
-set AAT {G} withing T ordered; # ALREADY ASSIGNED TIMESLOTS FOR A TEAM
+set AAT {G} within T ordered; # ALREADY ASSIGNED TIMESLOTS FOR A TEAM
 set UT {F} within T ordered; #UNAVAILABLE STARTING TIMES FOR EACH FIELD
 
 #System parameters
