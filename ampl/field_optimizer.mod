@@ -20,8 +20,8 @@ set AAT {F, G} within T ordered; # ALREADY ASSIGNED TIMESLOTS FOR A TEAM ON A FI
 set UT {F} within T ordered; #UNAVAILABLE STARTING TIMES FOR EACH FIELD
 
 # Derived: per-(f,g,day) times where we enforce continuity/duration equality
-set FREE_T {f in F, g in G, day in D} :=
-   DT[day] diff (AAT[f,g] inter DT[day]);
+#set FREE_T {f in F, g in G, day in D} :=
+#   DT[day] diff (AAT[f,g] inter DT[day]);
 
 
 #System parameters
@@ -70,8 +70,8 @@ subject to field_cannot_change {g in G, t in T}:
 	sum {f in F} x[f,g,t] <= 1;
 
 # Handle continuity and duration of activities
-subject to activity_continuity_and_duration {f in F, g in G, day in D, t in FREE_T[f,g,day]}:
-    sum {s in FREE_T[f,g,day] : s <= t and s + d[g] - 1 >= t} y[f,g,s] = x[f,g,t];
+subject to activity_continuity_and_duration {f in F, g in G, day in D, t in DT[day]}:
+	sum {s in DT[day]: s <= t and s + d[g] - 1 >= t} y[f,g,s] = x[f,g,t];
 
 # Maximum activities for a team
 subject to max_activities {g in G}:
