@@ -66,7 +66,7 @@ subject to field_cannot_change {g in G, t in T}:
 
 # Handle continuity and duration of activities
 subject to activity_continuity_and_duration {f in F, g in G, day in D, t in DT[day] diff AAT[g]}:
-	sum {s in DT[day]: s<=t and s+d[g]-1 >= t} y[f,g,s] = x[f,g,t];
+	sum {s in DT[day] diff AAT[g]: s<=t and s+d[g]-1 >= t} y[f,g,s] = x[f,g,t];
 
 # Maximum activities for a team
 subject to max_activities {g in G}:
