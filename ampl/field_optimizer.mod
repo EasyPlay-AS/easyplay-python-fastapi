@@ -69,8 +69,8 @@ sum {f in F, g in G, t in PT[g]} y[f,g,t]*preference_value;
 subject to field_cannot_change {g in G, t in T}:
 	sum {f in F} x[f,g,t] <= 1;
 
-# Handle continuity and duration of activities
-subject to activity_continuity_and_duration {f in F, g in G, day in D, t in DT[day]}:
+# Handle continuity and duration of activities (excludes AAT)
+subject to activity_continuity_and_duration {f in F, g in G, day in D, t in (DT[day] diff AAT[f,g])}:
 	sum {s in DT[day]: s <= t and s + d[g] - 1 >= t} y[f,g,s] = x[f,g,t];
 
 # Maximum activities for a team

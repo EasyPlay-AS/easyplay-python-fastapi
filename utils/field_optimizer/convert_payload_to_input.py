@@ -1,7 +1,7 @@
 import itertools
 from pydantic import BaseModel
 
-from models.field_optimizer.field_optimizer_payload import FieldOptimizerPayload
+from models.field_optimizer.field_optimizer_payload import FieldOptimizerPayload, ExistingTeamActivity
 from models.field_optimizer.field_optimizer_input import FieldOptimizerInput, Field, Group
 from models.field_optimizer.time_slot import TimeSlot
 
@@ -16,7 +16,9 @@ class ConvertedPayload(BaseModel):
     field_optimizer_input: FieldOptimizerInput
     time_slots_in_range: list[TimeSlot]
     index_to_timeslot_map: dict[int, int]
+    timeslot_to_index_map: dict[int, int]
     time_slot_duration_minutes: int
+    existing_activities: list[ExistingTeamActivity]
 
 
 def convert_payload_to_input(
@@ -35,10 +37,16 @@ def convert_payload_to_input(
 
     fields = []
     for stadium in payload.stadiums:
+        unavailable_indices = [
+            timeslot_to_index_map[timeslot_id]
+            for timeslot_id in stadium.unavailable_start_times
+            if timeslot_id in timeslot_to_index_map
+        ]
+
         fields.append(Field(
             name=stadium.name,
             size=stadium.size,
-            unavailable_start_times=[]
+            unavailable_start_times=unavailable_indices
         ))
 
     groups = []
@@ -78,5 +86,7 @@ def convert_payload_to_input(
         ),
         time_slots_in_range=time_slots_in_range,
         index_to_timeslot_map=index_to_timeslot_map,
-        time_slot_duration_minutes=TIME_SLOT_DURATION_MINUTES
+        timeslot_to_index_map=timeslot_to_index_map,
+        time_slot_duration_minutes=TIME_SLOT_DURATION_MINUTES,
+        existing_activities=payload.existing_team_activities
     )
