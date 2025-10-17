@@ -62,7 +62,7 @@ def test_multiple_fields():
     assert activities == expected_activities
 
 
-def test_allocations_across_day_boundaries():
+def test_across_day_boundaries():
     # Arrange
     field_allocations = [
         FieldAllocation(field="field1", group="group1", timeslot_id=1, size=1),
