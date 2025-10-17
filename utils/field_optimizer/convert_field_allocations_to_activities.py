@@ -1,13 +1,6 @@
 from models.field_optimizer.field_allocation import FieldAllocation
 from models.field_optimizer.field_activity import FieldActivity
-
-
-def get_day_for_timeslot(timeslot_id: int, timeslot_ids: list[list[int]]) -> int:
-    """Find which day (index) a timeslot belongs to."""
-    for day_idx, day_timeslots in enumerate(timeslot_ids):
-        if timeslot_id in day_timeslots:
-            return day_idx
-    return -1  # Not found
+from utils.time_slots import get_day_for_timeslot
 
 
 def convert_field_allocations_to_activities(
