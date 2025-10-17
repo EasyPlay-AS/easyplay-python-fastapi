@@ -11,6 +11,7 @@ set F; #FIELDS
 set G; #GROUPS
 set T ordered; #TIMESLOTS
 set D ordered; #DAYS
+set ADJ_D = {(day_1,day_2) in D cross D: ord(day_2) = ord(day_1) + 1}; #adjacent day pairs
 set ST within T ordered; #START TIMESLOTS FOR EACH DAY
 
 set DT {D} within T ordered; #ALL TIMESLOTS FOR EACH DAY
@@ -29,6 +30,7 @@ param T_max = max {t in T} t;
 param T_min = min {t in T} t;
 param last_t {day in D} := max {t in DT[day]} t;
 param preference_value = 1;
+param penalty_adj_days >= 0 default 10; #penalty weight for consecutive-day activities
 #param square_value = 0.1 #value of square occupied
 
 #Club parameters
@@ -47,10 +49,15 @@ var x {F,G,T} binary;
 var y {F,G,T} binary;
 
 
-# Sum of activity starts + sum of activity starts at preferred starting time
-maximize preference_score: 
-sum {f in F, g in G, t in T} y[f,g,t]*prio[g] + 
-sum {f in F, g in G, t in PT[g]} y[f,g,t]*preference_value;
+# Sum of activity starts 
+# + sum of activity starts at preferred starting time
+# - penalty for having activities on adjacent days
+maximize preference_score:
+    sum {f in F, g in G, t in T} y[f,g,t] * prio[g]
+  + sum {f in F, g in G, t in PT[g]} y[f,g,t] * preference_value
+  - penalty_adj_days * sum {g in G, (day_1,day_2) in ADJ_D}
+        ( sum {f in F, t in DT[day_1]} y[f,g,t] )
+      * ( sum {f in F, t in DT[day_2]} y[f,g,t] );
 
 
 # Handle logic for first timeslot of the week
