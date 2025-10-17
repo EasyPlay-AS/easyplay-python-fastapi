@@ -20,7 +20,9 @@ class FieldOptimizerService:
         field_optimizer_input = converted_payload.field_optimizer_input
         time_slots_in_range = converted_payload.time_slots_in_range
         index_to_timeslot_map = converted_payload.index_to_timeslot_map
+        timeslot_to_index_map = converted_payload.timeslot_to_index_map
         time_slot_duration_minutes = converted_payload.time_slot_duration_minutes
+        existing_activities = converted_payload.existing_activities
 
         try:
             # Initialize AMPL with SCIP solver
@@ -74,10 +76,6 @@ class FieldOptimizerService:
             for group in field_optimizer_input.groups:
                 ampl.set["PT"][group.name] = group.preferred_start_times
 
-            # Set unavailable times for each field (UT)
-            for field in field_optimizer_input.fields:
-                ampl.set["UT"][field.name] = field.unavailable_start_times
-
             # Set group parameters
             for group in field_optimizer_input.groups:
                 ampl.param["d"][group.name] = group.duration
@@ -91,6 +89,81 @@ class FieldOptimizerService:
             # Set field parameters
             for field in field_optimizer_input.fields:
                 ampl.param["size"][field.name] = field.size
+
+            aat_map = {}
+
+            if len(existing_activities) > 0:
+                print(f"Processing {len(existing_activities)} existing activities")
+
+            for activity in existing_activities:
+                field_name = activity.stadium_name
+                group_name = activity.team_name
+
+                group = next((g for g in field_optimizer_input.groups if g.name == group_name), None)
+                if not group:
+                    print(f"WARNING: Group '{group_name}' not found for existing activity - skipping")
+                    continue
+
+                timeslot_indices = []
+                for i in range(activity.duration_slots):
+                    global_timeslot = activity.start_timeslot + i
+                    relative_idx = timeslot_to_index_map.get(global_timeslot)
+
+                    if relative_idx is None:
+                        print(f"WARNING: Timeslot {global_timeslot} outside optimization window for activity '{group_name}'")
+                        continue
+
+                    timeslot_indices.append(relative_idx)
+
+                if len(timeslot_indices) == 0:
+                    print(f"WARNING: Activity '{group_name}' has no valid timeslots - skipping")
+                    continue
+
+                key = (field_name, group_name)
+                if key not in aat_map:
+                    aat_map[key] = []
+                aat_map[key].extend(timeslot_indices)
+
+            for field in field_optimizer_input.fields:
+                for group in field_optimizer_input.groups:
+                    key = (field.name, group.name)
+                    if key in aat_map:
+                        sorted_unique_timeslots = sorted(set(aat_map[key]))
+                        ampl.set["AAT"][field.name, group.name] = sorted_unique_timeslots
+                    else:
+                        ampl.set["AAT"][field.name, group.name] = []
+
+            for activity in existing_activities:
+                field_name = activity.stadium_name
+                group_name = activity.team_name
+
+                group = next((g for g in field_optimizer_input.groups if g.name == group_name), None)
+                if not group:
+                    continue
+
+                start_global_timeslot = activity.start_timeslot
+                start_idx = timeslot_to_index_map.get(start_global_timeslot)
+
+                if start_idx is None:
+                    continue
+
+                try:
+                    ampl.var["y"][field_name, group_name, start_idx].fix(1)
+                except Exception as e:
+                    print(f"ERROR: Could not fix y variable for {group_name}: {e}")
+                    continue
+
+                for i in range(activity.duration_slots):
+                    global_timeslot = activity.start_timeslot + i
+                    idx_relative = timeslot_to_index_map.get(global_timeslot)
+
+                    if idx_relative is not None:
+                        try:
+                            ampl.var["x"][field_name, group_name, idx_relative].fix(1)
+                        except Exception as e:
+                            print(f"ERROR: Could not fix x variable for {group_name}: {e}")
+            for field in field_optimizer_input.fields:
+                ampl.set["UT"][field.name] = field.unavailable_start_times
 
             # Solve the model
             ampl.solve()
