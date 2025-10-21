@@ -20,16 +20,12 @@ set PT {G} within T ordered; #PREFERED STARTING TIMESLOTS (enten denne eller par
 set AAT {F, G} within T ordered; # ALREADY ASSIGNED TIMESLOTS FOR A TEAM ON A FIELD
 set UT {F} within T ordered; #UNAVAILABLE STARTING TIMES FOR EACH FIELD
 
-# Derived: per-(f,g,day) times where we enforce continuity/duration equality
-#set FREE_T {f in F, g in G, day in D} :=
-#   DT[day] diff (AAT[f,g] inter DT[day]);
-
 
 #System parameters
 param T_max = max {t in T} t;
 param T_min = min {t in T} t;
 param last_t {day in D} := max {t in DT[day]} t;
-param preference_value = 1;
+param preference_value = 2;
 param penalty_adj_days >= 0 default 10; #penalty weight for consecutive-day activities
 #param square_value = 0.1 #value of square occupied
 
