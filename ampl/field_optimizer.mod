@@ -1,11 +1,10 @@
 option solver 'scip';
 option scip_options 'lim:time=300';
-#option scip_options 'feastol=1e-6'; #Ensure binary variable values
-#option scip_options 'lpfeastol=1e-6'; #Ensure binary variable values
-#option scip_options 'dualfeastol=1e-6'; #Ensure binary variable values
 #option scip_options 'pre:settings=3 lim:time=10'; #Disable presolving prevents relaxation of constraints
 
-
+###############################################################
+# SETS
+###############################################################
 
 set F; #FIELDS
 set G; #GROUPS
@@ -20,6 +19,9 @@ set PT {G} within T ordered; #PREFERED STARTING TIMESLOTS (enten denne eller par
 set AAT {F, G} within T ordered; # ALREADY ASSIGNED TIMESLOTS FOR A TEAM ON A FIELD
 set UT {F} within T ordered; #UNAVAILABLE STARTING TIMES FOR EACH FIELD
 
+###############################################################
+# PARAMS
+###############################################################
 
 #System parameters
 param T_max = max {t in T} t;
@@ -41,6 +43,10 @@ param prio{G} in 1..3; # Group priority: option to prioritize activities of spec
 param p_st1{G} default 0; #prefered start time 1
 param p_st2{G} default 0; #prefered start time 2
 
+###############################################################
+# VARIABLES
+###############################################################
+
 var x {F,G,T} binary;
 var y {F,G,T} binary;
 var has_activity_day {G, D} binary; # 1 if group g has any activity start on day
@@ -55,18 +61,9 @@ maximize preference_score:
   + sum {f in F, g in G, t in PT[g]} y[f,g,t] * preference_value
   - penalty_adj_days * sum {g in G, (day_1,day_2) in ADJ_D} has_activity_adjacent_days[g,day_1,day_2];
 
-
-# Handle logic for first timeslot of the week
-#subject to activity_can_start_timeslot_1 {f in F, g in G}:
-#	x[f,g,1] <= y[f,g,1];
-
-# Time slot occupied only if team started same timeslot or occupied last timeslot	
-#subject to activity_continuity {f in F, g in G, t in T: t >= 2}:
-#	x[f,g,t] <= x[f,g,t-1]+y[f,g,t];
-
-# Activities must last the required duration for each group take 3
-#subject to activity_duration {f in F, g in G, day in D}:
-#    sum {t in DT[day]} x[f,g,t] = sum {t in DT[day]} y[f,g,t] * d[g];
+###############################################################
+# MAIN MODEL
+###############################################################
 	
 # Same group can only occupy one field at a time
 subject to field_cannot_change {g in G, t in T}:
