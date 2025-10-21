@@ -57,9 +57,9 @@ var has_activity_adjacent_days {G, (day_1,day_2) in ADJ_D} binary; # 1 if group 
 # + sum of activity starts at preferred starting time
 # - penalty for having activities on adjacent days (linearized)
 maximize preference_score:
-    sum {f in F, g in G, t in T} y[f,g,t] * prio[g]
-  + sum {f in F, g in G, t in PT[g]} y[f,g,t] * preference_value
-  - penalty_adj_days * sum {g in G, (day_1,day_2) in ADJ_D} has_activity_adjacent_days[g,day_1,day_2];
+#    sum {f in F, g in G, t in T} y[f,g,t] * prio[g]
+#  + sum {f in F, g in G, t in PT[g]} y[f,g,t] * preference_value
+  - penalty_adj_days * sum {g in G, (day_1,day_2) in ADJ_D} has_activity_adjacent_days[g,day_1,day_2] -3;
 
 ###############################################################
 # MAIN MODEL
