@@ -28,7 +28,7 @@ param T_max = max {t in T} t;
 param T_min = min {t in T} t;
 param last_t {day in D} := max {t in DT[day]} t;
 param preference_value = 2;
-param penalty_adj_days >= 0 default 10; #penalty weight for consecutive-day activities
+param penalty_adj_days >= 0 default 100; #penalty weight for consecutive-day activities
 #param square_value = 0.1 #value of square occupied
 
 #Club parameters
