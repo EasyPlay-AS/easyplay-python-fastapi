@@ -43,17 +43,17 @@ param p_st2{G} default 0; #prefered start time 2
 
 var x {F,G,T} binary;
 var y {F,G,T} binary;
+var has_activity_day {G, D} binary; # 1 if group g has any activity start on day
+var has_activity_adjacent_days {G, (day_1,day_2) in ADJ_D} binary; # 1 if group has activities on adjacent days
 
 
-# Sum of activity starts 
+# Sum of activity starts
 # + sum of activity starts at preferred starting time
-# - penalty for having activities on adjacent days
+# - penalty for having activities on adjacent days (linearized)
 maximize preference_score:
     sum {f in F, g in G, t in T} y[f,g,t] * prio[g]
   + sum {f in F, g in G, t in PT[g]} y[f,g,t] * preference_value
-  - penalty_adj_days * sum {g in G, (day_1,day_2) in ADJ_D}
-        ( sum {f in F, t in DT[day_1]} y[f,g,t] )
-      * ( sum {f in F, t in DT[day_2]} y[f,g,t] );
+  - penalty_adj_days * sum {g in G, (day_1,day_2) in ADJ_D} has_activity_adjacent_days[g,day_1,day_2];
 
 
 # Handle logic for first timeslot of the week
@@ -88,7 +88,7 @@ subject to min_activities {g in G}:
 subject to unavailable_field_times {f in F, t in UT[f]}:
 	sum {g in G} x[f,g,t] = 0;
 
-# Activities can not start outside of the group´s timeslots.
+# Activities can not start outside of the group's timeslots.
 subject to activity_can_not_start {g in G, t in T diff AT[g]}:
 	sum {f in F} y[f,g,t] = 0;
 
@@ -107,3 +107,24 @@ subject to one_activity_per_day {g in G, day in D}:
 # Activity may not start too late
 subject to no_late_starts {f in F, g in G, day in D, s in DT[day] : s + d[g] - 1 > last_t[day]}:
 	y[f,g,s] = 0;
+
+###############################################################
+# ADJACENT DAY ACTIVITY HANDLING
+###############################################################
+
+# Link day-level indicator to whether any activity starts that day
+subject to has_activity_day_sum {g in G, day in D}:
+    has_activity_day[g,day] <= sum {f in F, t in DT[day]} y[f,g,t];
+
+subject to has_activity_day_trigger {g in G, day in D, f in F, t in DT[day]}:
+    y[f,g,t] <= has_activity_day[g,day];
+
+# Linearize: has_activity_adjacent_days = AND(has_activity_day[day_1], has_activity_day[day_2])
+subject to has_activity_adjacent_days_lb {g in G, (day_1,day_2) in ADJ_D}:
+    has_activity_adjacent_days[g,day_1,day_2] >= has_activity_day[g,day_1] + has_activity_day[g,day_2] - 1;
+
+subject to has_activity_adjacent_days_ub1 {g in G, (day_1,day_2) in ADJ_D}:
+    has_activity_adjacent_days[g,day_1,day_2] <= has_activity_day[g,day_1];
+
+subject to has_activity_adjacent_days_ub2 {g in G, (day_1,day_2) in ADJ_D}:
+    has_activity_adjacent_days[g,day_1,day_2] <= has_activity_day[g,day_2];
