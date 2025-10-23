@@ -24,3 +24,4 @@ class FieldOptimizerPayload(BaseModel):
     teams: list[Team]
     start_time: str
     end_time: str
+    incompatible_groups: list[list[str]] | None = None 
