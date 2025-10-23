@@ -1,16 +1,16 @@
 option solver 'scip';
 option scip_options 'lim:time=300';
-#option scip_options 'feastol=1e-6'; #Ensure binary variable values
-#option scip_options 'lpfeastol=1e-6'; #Ensure binary variable values
-#option scip_options 'dualfeastol=1e-6'; #Ensure binary variable values
 #option scip_options 'pre:settings=3 lim:time=10'; #Disable presolving prevents relaxation of constraints
 
-
+###############################################################
+# SETS
+###############################################################
 
 set F; #FIELDS
 set G; #GROUPS
 set T ordered; #TIMESLOTS
 set D ordered; #DAYS
+set ADJ_D = {(day_1,day_2) in D cross D: ord(day_2) = ord(day_1) + 1}; #adjacent day pairs
 set ST within T ordered; #START TIMESLOTS FOR EACH DAY
 
 set DT {D} within T ordered; #ALL TIMESLOTS FOR EACH DAY
@@ -23,16 +23,16 @@ set UT {F} within T ordered; #UNAVAILABLE STARTING TIMES FOR EACH FIELD
 # Example data input: set INCOMPATIBLE_GROUPS := ("TeamA","TeamB") ("TeamC","TeamD") etc..;  (provide each unordered pair only once)
 set INCOMPATIBLE_GROUPS within {G, G};
 
-# Derived: per-(f,g,day) times where we enforce continuity/duration equality
-#set FREE_T {f in F, g in G, day in D} :=
-#   DT[day] diff (AAT[f,g] inter DT[day]);
-
+###############################################################
+# PARAMS
+###############################################################
 
 #System parameters
 param T_max = max {t in T} t;
 param T_min = min {t in T} t;
 param last_t {day in D} := max {t in DT[day]} t;
-param preference_value = 1;
+param preference_value = 2;
+param penalty_adj_days = 10; #penalty weight for consecutive-day activities
 #param square_value = 0.1 #value of square occupied
 
 #Club parameters
@@ -50,33 +50,31 @@ param p_st2{G} default 0; #prefered start time 2
 # Global penalty for simultaneous activities of incompatible groups
 param incompatible_group_penalty >= 0 default 10;
 
+###############################################################
+# VARIABLES
+###############################################################
+
 var x {F,G,T} binary;
 var y {F,G,T} binary;
+var has_activity_day {G, D} binary; # 1 if group g has any activity start on day
+var has_activity_adjacent_days {G, (day_1,day_2) in ADJ_D} binary; # 1 if group has activities on adjacent days
 
 
-# Sum of activity starts + sum of activity starts at preferred starting time
-# - penalty for incompatible teams' activities on overlapping time slots. 
+# Sum of activity starts
+# + sum of activity starts at preferred starting time
+# - penalty for having activities on adjacent days (linearized)
+# - penalty for incompatible teams' activities on overlapping time slots
 maximize preference_score:
-    sum {f in F, g in G, t in T} 
-		prio[g] * y[f,g,t]
-  + sum {f in F, g in G, t in PT[g]} 
-  		preference_value * y[f,g,t] 
+    sum {f in F, g in G, t in T} y[f,g,t] * prio[g]
+  + sum {f in F, g in G, t in PT[g]} y[f,g,t] * preference_value
+  - penalty_adj_days * sum {g in G, (day_1,day_2) in ADJ_D} has_activity_adjacent_days[g,day_1,day_2]
   - sum {(g1,g2) in INCOMPATIBLE_GROUPS, t in T}
         incompatible_group_penalty * (sum {f in F} x[f,g1,t]) * (sum {f in F} x[f,g2,t]);
 
+###############################################################
+# MAIN MODEL
+###############################################################
 
-# Handle logic for first timeslot of the week
-#subject to activity_can_start_timeslot_1 {f in F, g in G}:
-#	x[f,g,1] <= y[f,g,1];
-
-# Time slot occupied only if team started same timeslot or occupied last timeslot	
-#subject to activity_continuity {f in F, g in G, t in T: t >= 2}:
-#	x[f,g,t] <= x[f,g,t-1]+y[f,g,t];
-
-# Activities must last the required duration for each group take 3
-#subject to activity_duration {f in F, g in G, day in D}:
-#    sum {t in DT[day]} x[f,g,t] = sum {t in DT[day]} y[f,g,t] * d[g];
-	
 # Same group can only occupy one field at a time
 subject to field_cannot_change {g in G, t in T}:
 	sum {f in F} x[f,g,t] <= 1;
@@ -89,10 +87,10 @@ subject to activity_continuity_and_duration {f in F, g in G, day in D, t in DT[d
 subject to max_activities {g in G}:
 	sum {t in T, f in F} y[f,g,t] <= n_max[g];
 
-# Minimum activities for a team	 
+# Minimum activities for a team
 subject to min_activities {g in G}:
-	sum {t in T, f in F} y[f,g,t] >= n_min[g]; 
-	
+	sum {t in T, f in F} y[f,g,t] >= n_min[g];
+
 # Activities can not occupy unavailable field times
 subject to unavailable_field_times {f in F, t in UT[f]}:
 	sum {g in G} x[f,g,t] = 0;
@@ -116,3 +114,24 @@ subject to one_activity_per_day {g in G, day in D}:
 # Activity may not start too late
 subject to no_late_starts {f in F, g in G, day in D, s in DT[day] : s + d[g] - 1 > last_t[day]}:
 	y[f,g,s] = 0;
+
+###############################################################
+# ADJACENT DAY ACTIVITY HANDLING
+###############################################################
+
+# Link day-level indicator to whether any activity starts that day
+subject to has_activity_day_sum {g in G, day in D}:
+    has_activity_day[g,day] <= sum {f in F, t in DT[day]} y[f,g,t];
+
+subject to has_activity_day_trigger {g in G, day in D, f in F, t in DT[day]}:
+    y[f,g,t] <= has_activity_day[g,day];
+
+# Linearize: has_activity_adjacent_days = AND(has_activity_day[day_1], has_activity_day[day_2])
+subject to has_activity_adjacent_days_lb {g in G, (day_1,day_2) in ADJ_D}:
+    has_activity_adjacent_days[g,day_1,day_2] >= has_activity_day[g,day_1] + has_activity_day[g,day_2] - 1;
+
+subject to has_activity_adjacent_days_ub1 {g in G, (day_1,day_2) in ADJ_D}:
+    has_activity_adjacent_days[g,day_1,day_2] <= has_activity_day[g,day_1];
+
+subject to has_activity_adjacent_days_ub2 {g in G, (day_1,day_2) in ADJ_D}:
+    has_activity_adjacent_days[g,day_1,day_2] <= has_activity_day[g,day_2];
