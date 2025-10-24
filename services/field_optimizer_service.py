@@ -92,6 +92,20 @@ class FieldOptimizerService:
             for field in field_optimizer_input.fields:
                 ampl.param["size"][field.name] = field.size
 
+            # Set incompatible groups (teams that should not have simultaneous activities)
+            if payload.incompatible_groups:
+                incompatible_pairs = []
+                for team_id_1, team_id_2 in payload.incompatible_groups:
+                    team_1 = next((t for t in payload.teams if t.id == team_id_1), None)
+                    team_2 = next((t for t in payload.teams if t.id == team_id_2), None)
+
+                    if team_1 and team_2:
+                        incompatible_pairs.append((team_1.name, team_2.name))
+
+                ampl.set["INCOMPATIBLE_GROUPS"] = incompatible_pairs
+            else:
+                ampl.set["INCOMPATIBLE_GROUPS"] = []
+
             # Solve the model
             ampl.solve()
 
