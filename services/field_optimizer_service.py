@@ -90,6 +90,21 @@ class FieldOptimizerService:
             for field in field_optimizer_input.fields:
                 ampl.param["size"][field.name] = field.size
 
+            # Set incompatible groups (teams that should not have simultaneous activities)
+            if payload.incompatible_groups:
+                incompatible_pairs = []
+                for team_id_1, team_id_2 in payload.incompatible_groups:
+                    team_1 = next((t for t in payload.teams if t.id == team_id_1), None)
+                    team_2 = next((t for t in payload.teams if t.id == team_id_2), None)
+
+                    if team_1 and team_2:
+                        incompatible_pairs.append((team_1.name, team_2.name))
+
+                ampl.set["INCOMPATIBLE_GROUPS"] = incompatible_pairs
+            else:
+                ampl.set["INCOMPATIBLE_GROUPS"] = []
+
+            # Handle existing activities (AAT - Already Assigned Times)
             aat_map = {}
 
             if len(existing_activities) > 0:
@@ -162,6 +177,8 @@ class FieldOptimizerService:
                             ampl.var["x"][field_name, group_name, idx_relative].fix(1)
                         except Exception as e:
                             print(f"ERROR: Could not fix x variable for {group_name}: {e}")
+
+            # Set unavailable times for each field (UT)
             for field in field_optimizer_input.fields:
                 ampl.set["UT"][field.name] = field.unavailable_start_times
 

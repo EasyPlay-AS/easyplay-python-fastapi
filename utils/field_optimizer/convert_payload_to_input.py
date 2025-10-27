@@ -5,9 +5,11 @@ from models.field_optimizer.field_optimizer_payload import FieldOptimizerPayload
 from models.field_optimizer.field_optimizer_input import FieldOptimizerInput, Field, Group
 from models.field_optimizer.time_slot import TimeSlot
 
-from utils.time_slots.generate_time_slots_in_range import generate_time_slots_in_range
-from utils.time_slots.get_timeslot_ids_by_week_day import get_timeslot_ids_by_week_day
+from utils.time_slots import (
+    generate_time_slots_in_range, get_timeslot_ids_by_week_day
+)
 from utils.common import create_number_to_index_mapping
+from .convert_time_range_to_timeslot_ids import convert_time_range_to_timeslot_ids
 
 TIME_SLOT_DURATION_MINUTES = 15
 
@@ -51,11 +53,8 @@ def convert_payload_to_input(
 
     groups = []
     for team in payload.teams:
-        # TODO: when ready, replace "timeslot_id" with "team.possible_start_times"
-        possible_start_times = [
-            timeslot_to_index_map[timeslot_id]
-            for timeslot_id in timeslot_ids
-        ]
+        possible_start_times = convert_time_range_to_timeslot_ids(
+            team.time_range)
 
         # TODO: when ready, use "team.preferred_start_times"
         preferred_start_times = []
