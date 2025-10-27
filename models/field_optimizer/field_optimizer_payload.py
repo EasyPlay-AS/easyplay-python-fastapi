@@ -8,11 +8,18 @@ class Stadium(BaseModel):
     unavailable_start_times: list[int]
 
 
+class TimeRange(BaseModel):
+    start_time: str
+    end_time: str
+    day_indexes: list[int]
+
+
 class Team(BaseModel):
     id: str
     name: str
     min_number_of_activities: int
     max_number_of_activities: int
+    time_range: TimeRange
     duration: int
     size_required: int
     priority: int
@@ -24,4 +31,4 @@ class FieldOptimizerPayload(BaseModel):
     teams: list[Team]
     start_time: str
     end_time: str
-    incompatible_groups: list[list[str]] | None = None 
+    incompatible_groups: list[list[str]] | None = None
