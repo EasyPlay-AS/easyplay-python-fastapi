@@ -9,7 +9,7 @@ from utils.time_slots import (
     generate_time_slots_in_range, get_timeslot_ids_by_week_day
 )
 from utils.common import create_number_to_index_mapping
-from utils.field_optimizer import convert_time_range_to_timeslot_ids
+from .convert_time_range_to_timeslot_ids import convert_time_range_to_timeslot_ids
 
 TIME_SLOT_DURATION_MINUTES = 15
 
