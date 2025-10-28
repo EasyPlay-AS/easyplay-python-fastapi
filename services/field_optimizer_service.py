@@ -7,6 +7,7 @@ from utils.field_optimizer import (
     convert_ampl_x_values_to_allocations,
     convert_field_activities_to_result,
     convert_field_allocations_to_activities,
+    build_aat_map,
 )
 
 
@@ -105,78 +106,32 @@ class FieldOptimizerService:
                 ampl.set["INCOMPATIBLE_GROUPS"] = []
 
             # Handle existing activities (AAT - Already Assigned Times)
-            aat_map = {}
-
-            if len(existing_activities) > 0:
-                print(f"Processing {len(existing_activities)} existing activities")
-
-            for activity in existing_activities:
-                field_name = activity.stadium_name
-                group_name = activity.team_name
-
-                group = next((g for g in field_optimizer_input.groups if g.name == group_name), None)
-                if not group:
-                    print(f"WARNING: Group '{group_name}' not found for existing activity - skipping")
-                    continue
-
-                timeslot_indices = []
-                for i in range(activity.duration_slots):
-                    global_timeslot = activity.start_timeslot + i
-                    relative_idx = timeslot_to_index_map.get(global_timeslot)
-
-                    if relative_idx is None:
-                        print(f"WARNING: Timeslot {global_timeslot} outside optimization window for activity '{group_name}'")
-                        continue
-
-                    timeslot_indices.append(relative_idx)
-
-                if len(timeslot_indices) == 0:
-                    print(f"WARNING: Activity '{group_name}' has no valid timeslots - skipping")
-                    continue
-
-                key = (field_name, group_name)
-                if key not in aat_map:
-                    aat_map[key] = []
-                aat_map[key].extend(timeslot_indices)
+            aat_map, processed_activities = build_aat_map(
+                existing_activities=existing_activities,
+                field_optimizer_input=field_optimizer_input,
+                timeslot_to_index_map=timeslot_to_index_map
+            )
 
             for field in field_optimizer_input.fields:
                 for group in field_optimizer_input.groups:
                     key = (field.name, group.name)
                     if key in aat_map:
-                        sorted_unique_timeslots = sorted(set(aat_map[key]))
-                        ampl.set["AAT"][field.name, group.name] = sorted_unique_timeslots
+                        ampl.set["AAT"][field.name, group.name] = aat_map[key]
                     else:
                         ampl.set["AAT"][field.name, group.name] = []
 
-            for activity in existing_activities:
-                field_name = activity.stadium_name
-                group_name = activity.team_name
-
-                group = next((g for g in field_optimizer_input.groups if g.name == group_name), None)
-                if not group:
-                    continue
-
-                start_global_timeslot = activity.start_timeslot
-                start_idx = timeslot_to_index_map.get(start_global_timeslot)
-
-                if start_idx is None:
-                    continue
-
+            for activity in processed_activities:
                 try:
-                    ampl.var["y"][field_name, group_name, start_idx].fix(1)
+                    ampl.var["y"][activity.field_name, activity.group_name, activity.start_index].fix(1)
                 except Exception as e:
-                    print(f"ERROR: Could not fix y variable for {group_name}: {e}")
+                    print(f"ERROR: Could not fix y variable for {activity.group_name}: {e}")
                     continue
 
-                for i in range(activity.duration_slots):
-                    global_timeslot = activity.start_timeslot + i
-                    idx_relative = timeslot_to_index_map.get(global_timeslot)
-
-                    if idx_relative is not None:
-                        try:
-                            ampl.var["x"][field_name, group_name, idx_relative].fix(1)
-                        except Exception as e:
-                            print(f"ERROR: Could not fix x variable for {group_name}: {e}")
+                for idx in activity.timeslot_indexes:
+                    try:
+                        ampl.var["x"][activity.field_name, activity.group_name, idx].fix(1)
+                    except Exception as e:
+                        print(f"ERROR: Could not fix x variable for {activity.group_name} at index {idx}: {e}")
 
             # Set unavailable times for each field (UT)
             for field in field_optimizer_input.fields:

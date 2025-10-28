@@ -39,7 +39,7 @@ def convert_payload_to_input(
 
     fields = []
     for stadium in payload.stadiums:
-        unavailable_indices = [
+        unavailable_indexes = [
             timeslot_to_index_map[timeslot_id]
             for timeslot_id in stadium.unavailable_start_times
             if timeslot_id in timeslot_to_index_map
@@ -48,7 +48,7 @@ def convert_payload_to_input(
         fields.append(Field(
             name=stadium.name,
             size=stadium.size,
-            unavailable_start_times=unavailable_indices
+            unavailable_start_times=unavailable_indexes
         ))
 
     groups = []
