@@ -10,7 +10,7 @@ set F; #FIELDS
 set G; #GROUPS
 set T ordered; #TIMESLOTS
 set D ordered; #DAYS
-set ADJ_D = {(day_1,day_2) in D cross D: ord(day_2) = ord(day_1) + 1}; #adjacent day pairs
+set ADJ_D = {(day_1,day_2) in D cross D: day_2 = day_1 + 1}; #adjacent day pairs
 set ST within T ordered; #START TIMESLOTS FOR EACH DAY
 
 set DT {D} within T ordered; #ALL TIMESLOTS FOR EACH DAY
