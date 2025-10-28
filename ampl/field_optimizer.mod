@@ -32,7 +32,7 @@ param T_max = max {t in T} t;
 param T_min = min {t in T} t;
 param last_t {day in D} := max {t in DT[day]} t;
 param preference_value = 2;
-param penalty_adj_days = 10; #penalty weight for consecutive-day activities
+param penalty_adj_days = 0.5; #penalty weight for consecutive-day activities
 #param square_value = 0.1 #value of square occupied
 
 #Club parameters
@@ -48,7 +48,7 @@ param p_st1{G} default 0; #prefered start time 1
 param p_st2{G} default 0; #prefered start time 2
 
 # Global penalty for simultaneous activities of incompatible groups
-param incompatible_group_penalty >= 0 default 10;
+param incompatible_group_penalty >= 0 default 0.5;
 
 ###############################################################
 # VARIABLES
