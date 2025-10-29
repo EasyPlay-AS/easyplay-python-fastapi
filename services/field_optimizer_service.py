@@ -7,6 +7,7 @@ from utils.field_optimizer import (
     convert_ampl_x_values_to_allocations,
     convert_field_activities_to_result,
     convert_field_allocations_to_activities,
+    build_aat_map,
 )
 
 
@@ -20,7 +21,9 @@ class FieldOptimizerService:
         field_optimizer_input = converted_payload.field_optimizer_input
         time_slots_in_range = converted_payload.time_slots_in_range
         index_to_timeslot_map = converted_payload.index_to_timeslot_map
+        timeslot_to_index_map = converted_payload.timeslot_to_index_map
         time_slot_duration_minutes = converted_payload.time_slot_duration_minutes
+        existing_activities = converted_payload.existing_activities
 
         try:
             # Initialize AMPL with SCIP solver
@@ -74,10 +77,6 @@ class FieldOptimizerService:
             for group in field_optimizer_input.groups:
                 ampl.set["PT"][group.name] = group.preferred_start_times
 
-            # Set unavailable times for each field (UT)
-            for field in field_optimizer_input.fields:
-                ampl.set["UT"][field.name] = field.unavailable_start_times
-
             # Set group parameters
             for group in field_optimizer_input.groups:
                 ampl.param["d"][group.name] = group.duration
@@ -105,6 +104,38 @@ class FieldOptimizerService:
                 ampl.set["INCOMPATIBLE_GROUPS"] = incompatible_pairs
             else:
                 ampl.set["INCOMPATIBLE_GROUPS"] = []
+
+            # Handle existing activities (AAT - Already Assigned Times)
+            aat_map, processed_activities = build_aat_map(
+                existing_activities=existing_activities,
+                field_optimizer_input=field_optimizer_input,
+                timeslot_to_index_map=timeslot_to_index_map
+            )
+
+            for field in field_optimizer_input.fields:
+                for group in field_optimizer_input.groups:
+                    key = (field.name, group.name)
+                    if key in aat_map:
+                        ampl.set["AAT"][field.name, group.name] = aat_map[key]
+                    else:
+                        ampl.set["AAT"][field.name, group.name] = []
+
+            for activity in processed_activities:
+                try:
+                    ampl.var["y"][activity.field_name, activity.group_name, activity.start_index].fix(1)
+                except Exception as e:
+                    print(f"ERROR: Could not fix y variable for {activity.group_name}: {e}")
+                    continue
+
+                for idx in activity.timeslot_indexes:
+                    try:
+                        ampl.var["x"][activity.field_name, activity.group_name, idx].fix(1)
+                    except Exception as e:
+                        print(f"ERROR: Could not fix x variable for {activity.group_name} at index {idx}: {e}")
+
+            # Set unavailable times for each field (UT)
+            for field in field_optimizer_input.fields:
+                ampl.set["UT"][field.name] = field.unavailable_start_times
 
             # Solve the model
             ampl.solve()
