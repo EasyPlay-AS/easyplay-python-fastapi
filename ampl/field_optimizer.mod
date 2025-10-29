@@ -31,8 +31,6 @@ set INCOMPATIBLE_GROUPS within {G, G};
 param T_max = max {t in T} t;
 param T_min = min {t in T} t;
 param last_t {day in D} := max {t in DT[day]} t;
-param preference_value = 2;
-param penalty_adj_days = 0.5; #penalty weight for consecutive-day activities
 #param square_value = 0.1 #value of square occupied
 
 #Club parameters
@@ -47,8 +45,11 @@ param prio{G} in 1..3; # Group priority: option to prioritize activities of spec
 param p_st1{G} default 0; #prefered start time 1
 param p_st2{G} default 0; #prefered start time 2
 
-# Global penalty for simultaneous activities of incompatible groups
-param incompatible_group_penalty >= 0 default 0.5;
+#Objective function reward and penalty parameters
+param preference_value = 2;
+param penalty_incompatible_group >= 0 default 0.5; # Global penalty for simultaneous activities of incompatible groups
+param penalty_adj_days = 0.5; #penalty weight for consecutive-day activities
+param penalty_late_starts default 0.01; #generally it is considered better to start early rather than late
 
 ###############################################################
 # VARIABLES
@@ -69,7 +70,8 @@ maximize preference_score:
   + sum {f in F, g in G, t in PT[g]} y[f,g,t] * preference_value
   - penalty_adj_days * sum {g in G, (day_1,day_2) in ADJ_D} has_activity_adjacent_days[g,day_1,day_2]
   - sum {(g1,g2) in INCOMPATIBLE_GROUPS, t in T}
-        incompatible_group_penalty * (sum {f in F} x[f,g1,t]) * (sum {f in F} x[f,g2,t]);
+        penalty_incompatible_group * (sum {f in F} x[f,g1,t]) * (sum {f in F} x[f,g2,t])
+  - penalty_late_starts * sum {f in F, g in G, day in D, s in DT[day]} (s - 1) * y[f,g,s];
 
 ###############################################################
 # MAIN MODEL
