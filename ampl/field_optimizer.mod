@@ -18,6 +18,7 @@ set AT {G} within T ordered; #AVAILABLE STARTING TIMESLOTS FOR EACH GROUP
 set PT {G} within T ordered; #PREFERED STARTING TIMESLOTS (enten denne eller parametre p_st1 osv.)
 set AAT {F, G} within T ordered; # ALREADY ASSIGNED TIMESLOTS FOR A TEAM ON A FIELD
 set UT {F} within T ordered; #UNAVAILABLE STARTING TIMES FOR EACH FIELD
+set PF {G} within F ordered default {}; #PREFERRED FIELDS PER GROUP (ordered for rank weighting). Defaults to empty set per group if not provided in data
 
 # Pairs of groups that should not train simultaneously i.e. because of having the same coach
 # Example data input: set INCOMPATIBLE_GROUPS := ("TeamA","TeamB") ("TeamC","TeamD") etc..;  (provide each unordered pair only once)
@@ -47,6 +48,8 @@ param p_st2{G} default 0; #prefered start time 2
 
 #Objective function reward and penalty parameters
 param preference_value = 2;
+param field_preference_value default 0.5; # reward weight for preferred fields
+param field_pref_weight {g in G, f in F} default (if f in PF[g] then 1 else 0); # per-group field weight (0 if not preferred, 1 if preferred). Can be overwritten in the input i.e. field_pref_weight := [G12, Haslumbanen] 0.8 [G12, Haslumbanen_2] 0.5; etc.
 param penalty_incompatible_group >= 0 default 0.5; # Global penalty for simultaneous activities of incompatible groups
 param penalty_adj_days = 0.5; #penalty weight for consecutive-day activities
 param penalty_late_starts default 0.01; #generally it is considered better to start early rather than late
@@ -62,12 +65,17 @@ var has_activity_adjacent_days {G, (day_1,day_2) in ADJ_D} binary; # 1 if group 
 
 
 # Sum of activity starts
-# + sum of activity starts at preferred starting time
+# + sum of activity starts at preferred starting times
+# + sum of activity starts at preferred fields
 # - penalty for having activities on adjacent days (linearized)
 # - penalty for incompatible teams' activities on overlapping time slots
+# - penalty for late activity starts (assumes that earlier is better)
+
 maximize preference_score:
     sum {f in F, g in G, t in T} y[f,g,t] * prio[g]
   + sum {f in F, g in G, t in PT[g]} y[f,g,t] * preference_value
+  + sum {g in G, f in F, t in T}
+        y[f,g,t] * field_preference_value * field_pref_weight[g,f]
   - penalty_adj_days * sum {g in G, (day_1,day_2) in ADJ_D} has_activity_adjacent_days[g,day_1,day_2]
   - sum {(g1,g2) in INCOMPATIBLE_GROUPS, t in T}
         penalty_incompatible_group * (sum {f in F} x[f,g1,t]) * (sum {f in F} x[f,g2,t])
