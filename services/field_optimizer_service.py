@@ -77,6 +77,10 @@ class FieldOptimizerService:
             for group in field_optimizer_input.groups:
                 ampl.set["PT"][group.name] = group.preferred_start_times
 
+            # Set preferred stadiums for each group (PF)
+            for group in field_optimizer_input.groups:
+                ampl.set["PF"][group.name] = group.preferred_stadium_ids
+
             # Set group parameters
             for group in field_optimizer_input.groups:
                 ampl.param["d"][group.name] = group.duration
@@ -95,8 +99,10 @@ class FieldOptimizerService:
             if payload.incompatible_groups:
                 incompatible_pairs = []
                 for team_id_1, team_id_2 in payload.incompatible_groups:
-                    team_1 = next((t for t in payload.teams if t.id == team_id_1), None)
-                    team_2 = next((t for t in payload.teams if t.id == team_id_2), None)
+                    team_1 = next(
+                        (t for t in payload.teams if t.id == team_id_1), None)
+                    team_2 = next(
+                        (t for t in payload.teams if t.id == team_id_2), None)
 
                     if team_1 and team_2:
                         incompatible_pairs.append((team_1.name, team_2.name))
@@ -122,16 +128,20 @@ class FieldOptimizerService:
 
             for activity in processed_activities:
                 try:
-                    ampl.var["y"][activity.field_name, activity.group_name, activity.start_index].fix(1)
+                    ampl.var["y"][activity.field_name,
+                                  activity.group_name, activity.start_index].fix(1)
                 except Exception as e:
-                    print(f"ERROR: Could not fix y variable for {activity.group_name}: {e}")
+                    print(
+                        f"ERROR: Could not fix y variable for {activity.group_name}: {e}")
                     continue
 
                 for idx in activity.timeslot_indexes:
                     try:
-                        ampl.var["x"][activity.field_name, activity.group_name, idx].fix(1)
+                        ampl.var["x"][activity.field_name,
+                                      activity.group_name, idx].fix(1)
                     except Exception as e:
-                        print(f"ERROR: Could not fix x variable for {activity.group_name} at index {idx}: {e}")
+                        print(
+                            f"ERROR: Could not fix x variable for {activity.group_name} at index {idx}: {e}")
 
             # Set unavailable times for each field (UT)
             for field in field_optimizer_input.fields:

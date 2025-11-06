@@ -69,7 +69,8 @@ def convert_payload_to_input(
             preferred_start_time_activity_2=0,
             size_required=team.size_required,
             duration=team.duration,
-            priority=team.priority
+            priority=team.priority,
+            preferred_stadium_ids=team.preferred_stadium_ids
         ))
 
     timeslot_ids_indexes = [

@@ -24,6 +24,7 @@ class Team(BaseModel):
     size_required: int
     priority: int
     is_included: bool
+    preferred_stadium_ids: list[str]
 
 
 class ExistingTeamActivity(BaseModel):
