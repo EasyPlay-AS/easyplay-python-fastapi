@@ -149,8 +149,10 @@ class FieldOptimizerService:
 
             # Check solve result
             solve_result = ampl.get_value("solve_result")
+            preference_score = ampl.obj["preference_score"]
+            preference_score_value = preference_score.value()
 
-            # Infeasible solution
+            # 1. Infeasible solution
             if solve_result == "infeasible":
                 end_time = datetime.now()
                 duration_ms = round(
@@ -162,23 +164,19 @@ class FieldOptimizerService:
                     activities=[]
                 )
 
-            # Limit reached
-            if solve_result == "limit":
+            # 2. No objective value
+            if preference_score_value <= 0:
                 end_time = datetime.now()
                 duration_ms = round(
                     (end_time - start_time).total_seconds() * 1000, 2)
                 return FieldOptimizerResult(
-                    result="limit",
+                    result="no_objective_value",
                     duration_ms=duration_ms,
                     preference_score=None,
                     activities=[]
                 )
 
-            # Else -> Successfully solved
-            preference_score = ampl.obj["preference_score"]
-            preference_score_value = preference_score.value()
-
-            # Extract allocations: which fields and timeslots are occupied by which groups
+            # 3. Else -> Successfully solved
             field_allocations = convert_ampl_x_values_to_allocations(
                 ampl, field_optimizer_input.groups)
 

@@ -22,7 +22,7 @@ class Activity(BaseModel):
 
 
 class FieldOptimizerResult(BaseModel):
-    result: Literal["solved", "infeasible", "limit", "failure"]
+    result: Literal["solved", "infeasible", "no_objective_value", "failure"]
     duration_ms: float
     preference_score: float | None
     activities: list[Activity]
