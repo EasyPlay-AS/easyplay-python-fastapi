@@ -1,3 +1,4 @@
+from typing import Literal
 from pydantic import BaseModel
 
 
@@ -21,7 +22,7 @@ class Activity(BaseModel):
 
 
 class FieldOptimizerResult(BaseModel):
-    result: str
+    result: Literal["solved", "infeasible", "limit", "failure"]
     duration_ms: float
-    preference_score: float
+    preference_score: float | None
     activities: list[Activity]
