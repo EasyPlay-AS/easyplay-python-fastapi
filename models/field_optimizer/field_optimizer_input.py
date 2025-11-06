@@ -18,7 +18,7 @@ class Group(BaseModel):
     size_required: int
     duration: int
     priority: int
-    preferred_stadium_ids: list[str]
+    preferred_field_names: list[str]
 
 
 class FieldOptimizerInput(BaseModel):
