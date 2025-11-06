@@ -77,9 +77,9 @@ class FieldOptimizerService:
             for group in field_optimizer_input.groups:
                 ampl.set["PT"][group.name] = group.preferred_start_times
 
-            # Set preferred stadiums for each group (PF)
+            # Set preferred fields for each group (PF)
             for group in field_optimizer_input.groups:
-                ampl.set["PF"][group.name] = group.preferred_stadium_ids
+                ampl.set["PF"][group.name] = group.preferred_field_names
 
             # Set group parameters
             for group in field_optimizer_input.groups:
@@ -153,10 +153,15 @@ class FieldOptimizerService:
             # Check solve result
             solve_result = ampl.get_value("solve_result")
             if solve_result != "solved":
-                return {
-                    "result": "FAILURE",
-                    "error": "Solver failed to solve the model"
-                }
+                end_time = datetime.now()
+                duration_ms = round(
+                    (end_time - start_time).total_seconds() * 1000, 2)
+                return FieldOptimizerResult(
+                    result="FAILURE",
+                    duration_ms=duration_ms,
+                    preference_score=0.0,
+                    activities=[]
+                )
 
             preference_score = ampl.obj["preference_score"]
             preference_score_value = preference_score.value()
@@ -189,8 +194,13 @@ class FieldOptimizerService:
                 activities=result_activities
             )
         except Exception as e:
-            # Handle errors gracefully
-            return {
-                "result": "FAILURE",
-                "error": str(e)
-            }
+            print(f"ERROR: {e}")
+            end_time = datetime.now()
+            duration_ms = round(
+                (end_time - start_time).total_seconds() * 1000, 2)
+            return FieldOptimizerResult(
+                result="FAILURE",
+                duration_ms=duration_ms,
+                preference_score=0.0,
+                activities=[]
+            )
