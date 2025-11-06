@@ -1,6 +1,5 @@
 option solver 'scip';
-option scip_options 'lim:time=300';
-#option scip_options 'pre:settings=3 lim:time=10'; #Disable presolving prevents relaxation of constraints
+option scip_options 'lim:time=30 lim:gap=0.02';
 
 ###############################################################
 # SETS
