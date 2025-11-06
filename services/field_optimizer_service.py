@@ -30,9 +30,6 @@ class FieldOptimizerService:
             ampl = AMPL()
             ampl.option["solver"] = "scip"
 
-            # Time limit in seconds
-            ampl.option["mp_options"] = "lim:time=30"
-
             # Load the model file
             ampl.read("./ampl/field_optimizer.mod")
 
@@ -152,21 +149,34 @@ class FieldOptimizerService:
 
             # Check solve result
             solve_result = ampl.get_value("solve_result")
-            if solve_result != "solved":
+            preference_score = ampl.obj["preference_score"]
+            preference_score_value = preference_score.value()
+
+            # 1. Infeasible solution
+            if solve_result == "infeasible":
                 end_time = datetime.now()
                 duration_ms = round(
                     (end_time - start_time).total_seconds() * 1000, 2)
                 return FieldOptimizerResult(
-                    result="FAILURE",
+                    result="infeasible",
                     duration_ms=duration_ms,
-                    preference_score=0.0,
+                    preference_score=None,
                     activities=[]
                 )
 
-            preference_score = ampl.obj["preference_score"]
-            preference_score_value = preference_score.value()
+            # 2. No objective value
+            if preference_score_value <= 0:
+                end_time = datetime.now()
+                duration_ms = round(
+                    (end_time - start_time).total_seconds() * 1000, 2)
+                return FieldOptimizerResult(
+                    result="no_objective_value",
+                    duration_ms=duration_ms,
+                    preference_score=None,
+                    activities=[]
+                )
 
-            # Extract allocations: which fields and timeslots are occupied by which groups
+            # 3. Else -> Successfully solved
             field_allocations = convert_ampl_x_values_to_allocations(
                 ampl, field_optimizer_input.groups)
 
@@ -188,7 +198,7 @@ class FieldOptimizerService:
                 (end_time - start_time).total_seconds() * 1000, 2)
 
             return FieldOptimizerResult(
-                result="SUCCESS",
+                result="solved",
                 duration_ms=duration_ms,
                 preference_score=preference_score_value,
                 activities=result_activities
@@ -199,8 +209,8 @@ class FieldOptimizerService:
             duration_ms = round(
                 (end_time - start_time).total_seconds() * 1000, 2)
             return FieldOptimizerResult(
-                result="FAILURE",
+                result="failure",
                 duration_ms=duration_ms,
-                preference_score=0.0,
+                preference_score=None,
                 activities=[]
             )
