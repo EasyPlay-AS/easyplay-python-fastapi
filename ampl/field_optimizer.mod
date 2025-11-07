@@ -1,5 +1,5 @@
 option solver 'scip';
-option scip_options 'lim:time=30 lim:gap=0.02';
+option scip_options 'lim:time=120 lim:gap=0.02';
 
 ###############################################################
 # SETS
