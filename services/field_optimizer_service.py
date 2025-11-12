@@ -95,14 +95,11 @@ class FieldOptimizerService:
             # Set incompatible groups (teams that should not have simultaneous activities)
             if payload.incompatible_groups:
                 incompatible_pairs = []
+                team_ids = [t.id for t in payload.teams]
                 for team_id_1, team_id_2 in payload.incompatible_groups:
-                    team_1 = next(
-                        (t for t in payload.teams if t.id == team_id_1), None)
-                    team_2 = next(
-                        (t for t in payload.teams if t.id == team_id_2), None)
-
-                    if team_1 and team_2:
-                        incompatible_pairs.append((team_1.name, team_2.name))
+                    # Use team IDs directly (no need to convert to names)
+                    if team_id_1 in team_ids and team_id_2 in team_ids:
+                        incompatible_pairs.append((team_id_1, team_id_2))
 
                 ampl.set["INCOMPATIBLE_GROUPS"] = incompatible_pairs
             else:

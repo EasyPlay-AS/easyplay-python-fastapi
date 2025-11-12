@@ -28,15 +28,15 @@ def validate_existing_activity(
         (is_valid, error_message): Tuple where is_valid is True if activity is valid,
                                    and error_message contains the error if not valid
     """
-    # Check if group exists
-    group = next((g for g in field_optimizer_input.groups if g.name == activity.team_name), None)
+    # Check if group exists (group.name now contains team ID)
+    group = next((g for g in field_optimizer_input.groups if g.name == activity.team_id), None)
     if not group:
-        return False, f"Group '{activity.team_name}' not found"
+        return False, f"Group '{activity.team_name}' (ID: {activity.team_id}) not found"
 
-    # Check if field exists
-    field = next((f for f in field_optimizer_input.fields if f.name == activity.stadium_name), None)
+    # Check if field exists (field.name now contains stadium ID)
+    field = next((f for f in field_optimizer_input.fields if f.name == activity.stadium_id), None)
     if not field:
-        return False, f"Field '{activity.stadium_name}' not found"
+        return False, f"Field '{activity.stadium_name}' (ID: {activity.stadium_id}) not found"
 
     return True, None
 
@@ -105,8 +105,9 @@ def build_aat_map(
     print(f"Processing {len(existing_activities)} existing activities")
 
     for activity in existing_activities:
-        field_name = activity.stadium_name
-        group_name = activity.team_name
+        # Use IDs instead of names (matching the field_optimizer_input structure)
+        field_id = activity.stadium_id
+        group_id = activity.team_id
 
         # Validate activity references
         is_valid, error_msg = validate_existing_activity(activity, field_optimizer_input)
@@ -121,28 +122,28 @@ def build_aat_map(
 
         # Log skipped timeslots (outside optimization window)
         if len(skipped) > 0:
-            print(f"WARNING: {len(skipped)} timeslot(s) outside optimization window for '{group_name}': {skipped}")
+            print(f"WARNING: {len(skipped)} timeslot(s) outside optimization window for '{activity.team_name}' (ID: {group_id}): {skipped}")
 
         # Skip if no valid timeslots
         if len(timeslot_indexes) == 0:
-            print(f"WARNING: Activity '{group_name}' has no valid timeslots - skipping")
+            print(f"WARNING: Activity '{activity.team_name}' (ID: {group_id}) has no valid timeslots - skipping")
             continue
 
         # Skip if start is outside window
         if start_idx is None:
-            print(f"WARNING: Start timeslot outside window for '{group_name}' - skipping")
+            print(f"WARNING: Start timeslot outside window for '{activity.team_name}' (ID: {group_id}) - skipping")
             continue
 
-        # Add to AAT map (for constraint exclusion)
-        key = (field_name, group_name)
+        # Add to AAT map (for constraint exclusion) - using IDs as keys
+        key = (field_id, group_id)
         if key not in aat_map:
             aat_map[key] = []
         aat_map[key].extend(timeslot_indexes)
 
-        # Add to processed list (for variable fixing)
+        # Add to processed list (for variable fixing) - using IDs
         processed_activities.append(ProcessedActivity(
-            field_name=field_name,
-            group_name=group_name,
+            field_name=field_id,
+            group_name=group_id,
             start_index=start_idx,
             timeslot_indexes=timeslot_indexes
         ))

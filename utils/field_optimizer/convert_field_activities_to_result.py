@@ -29,17 +29,17 @@ def convert_field_activities_to_result(
     activities = []
 
     for activity in field_activities:
-        # Find the team
+        # Find the team (activity.group now contains team ID)
         team = next(
-            (team for team in payload.teams if team.name == activity.group), None)
+            (team for team in payload.teams if team.id == activity.group), None)
         if not team:
-            raise ValueError("Team not found")
+            raise ValueError(f"Team not found for ID: {activity.group}")
 
-        # Find the stadium
+        # Find the stadium (activity.field now contains stadium ID)
         stadium = next(
-            (stadium for stadium in payload.stadiums if stadium.name == activity.field), None)
+            (stadium for stadium in payload.stadiums if stadium.id == activity.field), None)
         if not stadium:
-            raise ValueError("Stadium not found")
+            raise ValueError(f"Stadium not found for ID: {activity.field}")
 
         # Map consecutive time slot IDs to actual time slot IDs
         mapped_start_time_slot = index_to_timeslot_map.get(
