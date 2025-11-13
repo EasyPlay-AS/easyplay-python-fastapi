@@ -39,9 +39,9 @@ class FieldOptimizerService:
 
             # Set basic sets
             ampl.set["F"] = [
-                field.name for field in field_optimizer_input.fields]
+                field.id for field in field_optimizer_input.fields]
             ampl.set["G"] = [
-                group.name for group in field_optimizer_input.groups]
+                group.id for group in field_optimizer_input.groups]
 
             # Flatten all time slots for set T
             all_timeslots = []
@@ -68,43 +68,33 @@ class FieldOptimizerService:
 
             # Set available starting times for each group (AT)
             for group in field_optimizer_input.groups:
-                ampl.set["AT"][group.name] = group.possible_start_times
+                ampl.set["AT"][group.id] = group.possible_start_times
 
             # Set preferred starting times for each group (PT)
             for group in field_optimizer_input.groups:
-                ampl.set["PT"][group.name] = group.preferred_start_times
+                ampl.set["PT"][group.id] = group.preferred_start_times
 
             # Set preferred fields for each group (PF)
             for group in field_optimizer_input.groups:
-                ampl.set["PF"][group.name] = group.preferred_field_names
+                ampl.set["PF"][group.id] = group.preferred_field_ids
 
             # Set group parameters
             for group in field_optimizer_input.groups:
-                ampl.param["d"][group.name] = group.duration
-                ampl.param["n_min"][group.name] = group.minimum_number_of_activities
-                ampl.param["n_max"][group.name] = group.maximum_number_of_activities
-                ampl.param["size_req"][group.name] = group.size_required
-                ampl.param["prio"][group.name] = group.priority
-                ampl.param["p_st1"][group.name] = group.preferred_start_time_activity_1
-                ampl.param["p_st2"][group.name] = group.preferred_start_time_activity_2
+                ampl.param["d"][group.id] = group.duration
+                ampl.param["n_min"][group.id] = group.minimum_number_of_activities
+                ampl.param["n_max"][group.id] = group.maximum_number_of_activities
+                ampl.param["size_req"][group.id] = group.size_required
+                ampl.param["prio"][group.id] = group.priority
+                ampl.param["p_st1"][group.id] = group.preferred_start_time_activity_1
+                ampl.param["p_st2"][group.id] = group.preferred_start_time_activity_2
 
             # Set field parameters
             for field in field_optimizer_input.fields:
-                ampl.param["size"][field.name] = field.size
+                ampl.param["size"][field.id] = field.size
 
             # Set incompatible groups (teams that should not have simultaneous activities)
             if payload.incompatible_groups:
-                incompatible_pairs = []
-                for team_id_1, team_id_2 in payload.incompatible_groups:
-                    team_1 = next(
-                        (t for t in payload.teams if t.id == team_id_1), None)
-                    team_2 = next(
-                        (t for t in payload.teams if t.id == team_id_2), None)
-
-                    if team_1 and team_2:
-                        incompatible_pairs.append((team_1.name, team_2.name))
-
-                ampl.set["INCOMPATIBLE_GROUPS"] = incompatible_pairs
+                ampl.set["INCOMPATIBLE_GROUPS"] = payload.incompatible_groups
             else:
                 ampl.set["INCOMPATIBLE_GROUPS"] = []
 
@@ -117,32 +107,32 @@ class FieldOptimizerService:
 
             for field in field_optimizer_input.fields:
                 for group in field_optimizer_input.groups:
-                    key = (field.name, group.name)
+                    key = (field.id, group.id)
                     if key in aat_map:
-                        ampl.set["AAT"][field.name, group.name] = aat_map[key]
+                        ampl.set["AAT"][field.id, group.id] = aat_map[key]
                     else:
-                        ampl.set["AAT"][field.name, group.name] = []
+                        ampl.set["AAT"][field.id, group.id] = []
 
             for activity in processed_activities:
                 try:
-                    ampl.var["y"][activity.field_name,
-                                  activity.group_name, activity.start_index].fix(1)
+                    ampl.var["y"][activity.field_id,
+                                  activity.group_id, activity.start_index].fix(1)
                 except Exception as e:
                     print(
-                        f"ERROR: Could not fix y variable for {activity.group_name}: {e}")
+                        f"ERROR: Could not fix y variable for {activity.group_id}: {e}")
                     continue
 
                 for idx in activity.timeslot_indexes:
                     try:
-                        ampl.var["x"][activity.field_name,
-                                      activity.group_name, idx].fix(1)
+                        ampl.var["x"][activity.field_id,
+                                      activity.group_id, idx].fix(1)
                     except Exception as e:
                         print(
-                            f"ERROR: Could not fix x variable for {activity.group_name} at index {idx}: {e}")
+                            f"ERROR: Could not fix x variable for {activity.group_id} at index {idx}: {e}")
 
             # Set unavailable times for each field (UT)
             for field in field_optimizer_input.fields:
-                ampl.set["UT"][field.name] = field.unavailable_start_times
+                ampl.set["UT"][field.id] = field.unavailable_start_times
 
             # Solve the model
             ampl.solve()

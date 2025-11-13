@@ -2,12 +2,14 @@ from pydantic import BaseModel
 
 
 class Field(BaseModel):
+    id: str
     name: str
     size: int
     unavailable_start_times: list[int]
 
 
 class Group(BaseModel):
+    id: str
     name: str
     minimum_number_of_activities: int
     maximum_number_of_activities: int
@@ -18,7 +20,7 @@ class Group(BaseModel):
     size_required: int
     duration: int
     priority: int
-    preferred_field_names: list[str]
+    preferred_field_ids: list[str]  # Changed from preferred_field_names
 
 
 class FieldOptimizerInput(BaseModel):

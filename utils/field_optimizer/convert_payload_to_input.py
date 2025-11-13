@@ -46,6 +46,7 @@ def convert_payload_to_input(
         ]
 
         fields.append(Field(
+            id=stadium.id,
             name=stadium.name,
             size=stadium.size,
             unavailable_start_times=unavailable_indexes
@@ -59,14 +60,10 @@ def convert_payload_to_input(
         # TODO: when ready, use "team.preferred_start_times"
         preferred_start_times = []
 
-        preferred_field_names = []
-        for stadium_id in team.preferred_stadium_ids:
-            stadium = next(
-                (stadium for stadium in payload.stadiums if stadium.id == stadium_id), None)
-            if stadium:
-                preferred_field_names.append(stadium.name)
+        preferred_field_ids = team.preferred_stadium_ids
 
         groups.append(Group(
+            id=team.id,
             name=team.name,
             minimum_number_of_activities=team.min_number_of_activities,
             maximum_number_of_activities=team.max_number_of_activities,
@@ -77,7 +74,7 @@ def convert_payload_to_input(
             size_required=team.size_required,
             duration=team.duration,
             priority=team.priority,
-            preferred_field_names=preferred_field_names
+            preferred_field_ids=preferred_field_ids
         ))
 
     timeslot_ids_indexes = [

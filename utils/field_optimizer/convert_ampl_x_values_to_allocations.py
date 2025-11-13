@@ -10,7 +10,7 @@ def convert_ampl_x_values_to_allocations(ampl: AMPL, groups: list[Group]) -> lis
 
     # Create a lookup dictionary for group size requirements
     group_size_requirement_lookup = {
-        group.name: group.size_required for group in groups}
+        group.id: group.size_required for group in groups}
 
     for index, value in x_values.to_dict().items():
         # Check if the binary variable is effectively "1"
