@@ -20,8 +20,11 @@ set UT {F} within T ordered; #UNAVAILABLE STARTING TIMES FOR EACH FIELD
 set PF {G} within F ordered default {}; #PREFERRED FIELDS PER GROUP (ordered for rank weighting). Defaults to empty set per group if not provided in data
 
 # Pairs of groups that should not train simultaneously i.e. because of having the same coach
-# Example data input: set INCOMPATIBLE_GROUPS := ("TeamA","TeamB") ("TeamC","TeamD") etc..;  (provide each unordered pair only once)
-set INCOMPATIBLE_GROUPS within {G, G};
+# Example data input: set INCOMPATIBLE_GROUPS_SAME_TIME := ("TeamA","TeamB") ("TeamC","TeamD") etc..;  (provide each unordered pair only once)
+set INCOMPATIBLE_GROUPS_SAME_TIME within {G, G};
+
+# Pairs of groups that should not have activities during the same day
+set INCOMPATIBLE_GROUPS_SAME_DAY within {G, G};
 
 ###############################################################
 # PARAMS
@@ -49,7 +52,8 @@ param p_st2{G} default 0; #prefered start time 2
 param preference_value = 2;
 param field_preference_value default 0.5; # reward weight for preferred fields
 param field_pref_weight {g in G, f in F} default (if f in PF[g] then 1 else 0); # per-group field weight (0 if not preferred, 1 if preferred). Can be overwritten in the input i.e. field_pref_weight := [G12, Haslumbanen] 0.8 [G12, Haslumbanen_2] 0.5; etc.
-param penalty_incompatible_group >= 0 default 0.5; # Global penalty for simultaneous activities of incompatible groups
+param penalty_incompatible_group_same_time >= 0 default 0.5; # Global penalty for simultaneous activities of incompatible groups
+param penalty_incompatible_group_same_day >= 0 default 0.5; # Global penalty for same-day activities of incompatible groups
 param penalty_adj_days = 0.5; #penalty weight for consecutive-day activities
 param penalty_late_starts default 0.01; #generally it is considered better to start early rather than late
 
@@ -76,8 +80,10 @@ maximize preference_score:
   + sum {g in G, f in F, t in T}
         y[f,g,t] * field_preference_value * field_pref_weight[g,f]
   - penalty_adj_days * sum {g in G, (day_1,day_2) in ADJ_D} has_activity_adjacent_days[g,day_1,day_2]
-  - sum {(g1,g2) in INCOMPATIBLE_GROUPS, t in T}
-        penalty_incompatible_group * (sum {f in F} x[f,g1,t]) * (sum {f in F} x[f,g2,t])
+  - sum {(g1,g2) in INCOMPATIBLE_GROUPS_SAME_TIME, t in T}
+        penalty_incompatible_group_same_time * (sum {f in F} x[f,g1,t]) * (sum {f in F} x[f,g2,t])
+  - sum {(g1,g2) in INCOMPATIBLE_GROUPS_SAME_DAY, day in D}
+        penalty_incompatible_group_same_day * has_activity_day[g1,day] * has_activity_day[g2,day]
   - penalty_late_starts * sum {f in F, g in G, day in D, s in DT[day]} (s - 1) * y[f,g,s];
 
 ###############################################################
