@@ -94,9 +94,15 @@ class FieldOptimizerService:
 
             # Set incompatible groups (teams that should not have simultaneous activities)
             if payload.incompatible_groups:
-                ampl.set["INCOMPATIBLE_GROUPS"] = payload.incompatible_groups
+                ampl.set["INCOMPATIBLE_GROUPS_SAME_TIME"] = payload.incompatible_groups
             else:
-                ampl.set["INCOMPATIBLE_GROUPS"] = []
+                ampl.set["INCOMPATIBLE_GROUPS_SAME_TIME"] = []
+
+            # Set incompatible groups same day (subgroups from same team)
+            if payload.incompatible_groups_same_day:
+                ampl.set["INCOMPATIBLE_GROUPS_SAME_DAY"] = payload.incompatible_groups_same_day
+            else:
+                ampl.set["INCOMPATIBLE_GROUPS_SAME_DAY"] = []
 
             # Handle existing activities (AAT - Already Assigned Times)
             aat_map, processed_activities = build_aat_map(

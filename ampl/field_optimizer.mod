@@ -53,7 +53,7 @@ param preference_value = 2;
 param field_preference_value default 0.5; # reward weight for preferred fields
 param field_pref_weight {g in G, f in F} default (if f in PF[g] then 1 else 0); # per-group field weight (0 if not preferred, 1 if preferred). Can be overwritten in the input i.e. field_pref_weight := [G12, Haslumbanen] 0.8 [G12, Haslumbanen_2] 0.5; etc.
 param penalty_incompatible_group_same_time >= 0 default 0.5; # Global penalty for simultaneous activities of incompatible groups
-param penalty_incompatible_group_same_day >= 0 default 0.5; # Global penalty for same-day activities of incompatible groups
+param penalty_incompatible_group_same_day >= 0 default 10; # Global penalty for same-day activities of incompatible groups
 param penalty_adj_days = 0.5; #penalty weight for consecutive-day activities
 param penalty_late_starts default 0.01; #generally it is considered better to start early rather than late
 
