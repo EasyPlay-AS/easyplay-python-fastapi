@@ -84,7 +84,7 @@ maximize preference_score:
         penalty_incompatible_group_same_time * (sum {f in F} x[f,g1,t]) * (sum {f in F} x[f,g2,t])
   - sum {(g1,g2) in INCOMPATIBLE_GROUPS_SAME_DAY, day in D}
         penalty_incompatible_group_same_day * has_activity_day[g1,day] * has_activity_day[g2,day]
-  - penalty_late_starts * sum {f in F, g in G, day in D, s in DT[day]} (s - 1) * y[f,g,s];
+  - penalty_late_starts * sum {f in F, g in G, day in D, s in DT[day]} (ord(s, DT[day]) - 1) * y[f,g,s];
 
 ###############################################################
 # MAIN MODEL
