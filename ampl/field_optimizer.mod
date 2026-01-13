@@ -43,10 +43,18 @@ param n_max{G} >= 0; #maximum number of activities
 param size{F} >= 0; #size of field measured in zones
 param size_req{G} >= 0; #size required for each group
 param prio{G} in 1..3; # Group priority: option to prioritize activities of specific groups
+param slots_per_day {day in D} := card(DT[day]); #number of slots per day
+param mid_slot {day in D} := ceil(slots_per_day[day] / 2); #middle slot index per day (early/late weights go to zero here)
+param early_weight {day in D, s in DT[day]} := max(0, mid_slot[day] - ord(s, DT[day])); #starts high on slot 1, 0 at mid_slot
+param late_weight {day in D, s in DT[day]} := max(0, ord(s, DT[day]) - mid_slot[day]); #0 at mid_slot, increases toward the final slot
+param middle_weight {day in D, s in DT[day]} := max(0, max(mid_slot[day] - 1, slots_per_day[day] - mid_slot[day]) - abs(ord(s, DT[day]) - mid_slot[day])); #peaks at mid_slot, 0 at edges
 
 #Group parameters (preferences)
 param p_st1{G} default 0; #prefered start time 1
 param p_st2{G} default 0; #prefered start time 2
+param p_early_starts {G} integer >= 0 default 0; #preference for early-day starts
+param p_middle_starts {G} integer >= 0 default 0; #preference for mid-day starts
+param p_late_starts {G} integer >= 0 default 0; #preference for late-day starts
 
 #Objective function reward and penalty parameters
 param preference_value = 2;
@@ -56,6 +64,8 @@ param penalty_incompatible_group_same_time >= 0 default 0.5; # Global penalty fo
 param penalty_incompatible_group_same_day >= 0 default 10; # Global penalty for same-day activities of incompatible groups
 param penalty_adj_days = 0.5; #penalty weight for consecutive-day activities
 param penalty_late_starts default 0.01; #generally it is considered better to start early rather than late
+param reward_start_time_preference >= 0 default 1; #reward weight for start-time preferences
+
 
 ###############################################################
 # VARIABLES
@@ -72,7 +82,9 @@ var has_activity_adjacent_days {G, (day_1,day_2) in ADJ_D} binary; # 1 if group 
 # + sum of activity starts at preferred fields
 # - penalty for having activities on adjacent days (linearized)
 # - penalty for incompatible teams' activities on overlapping time slots
+# - penalty for incompatible teams' activities on the same day
 # - penalty for late activity starts (assumes that earlier is better)
+# + reward for preferred start times (early/mid/late)
 
 maximize preference_score:
     sum {f in F, g in G, t in T} y[f,g,t] * prio[g]
@@ -84,7 +96,11 @@ maximize preference_score:
         penalty_incompatible_group_same_time * (sum {f in F} x[f,g1,t]) * (sum {f in F} x[f,g2,t])
   - sum {(g1,g2) in INCOMPATIBLE_GROUPS_SAME_DAY, day in D}
         penalty_incompatible_group_same_day * has_activity_day[g1,day] * has_activity_day[g2,day]
-  - penalty_late_starts * sum {f in F, g in G, day in D, s in DT[day]} (ord(s, DT[day]) - 1) * y[f,g,s];
+  - penalty_late_starts * sum {f in F, g in G, day in D, s in DT[day]} (ord(s, DT[day]) - 1) * y[f,g,s]
+  + reward_start_time_preference * sum {f in F, g in G, day in D, s in DT[day]} p_early_starts[g] * early_weight[day,s] * y[f,g,s]
+  + reward_start_time_preference * sum {f in F, g in G, day in D, s in DT[day]} p_middle_starts[g] * middle_weight[day,s] * y[f,g,s]
+  + reward_start_time_preference * sum {f in F, g in G, day in D, s in DT[day]} p_late_starts[g] * late_weight[day,s] * y[f,g,s]
+;
 
 ###############################################################
 # MAIN MODEL
