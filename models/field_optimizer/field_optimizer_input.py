@@ -21,6 +21,7 @@ class Group(BaseModel):
     duration: int
     priority: int
     preferred_field_ids: list[str]  # Changed from preferred_field_names
+    p_early_starts: int
 
 
 class FieldOptimizerInput(BaseModel):

@@ -25,6 +25,7 @@ class Team(BaseModel):
     priority: int
     is_included: bool
     preferred_stadium_ids: list[str]
+    p_early_starts: int | None = None
 
 
 class ExistingTeamActivity(BaseModel):
