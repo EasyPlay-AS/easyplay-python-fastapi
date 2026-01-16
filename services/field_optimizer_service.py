@@ -87,6 +87,7 @@ class FieldOptimizerService:
                 ampl.param["prio"][group.id] = group.priority
                 ampl.param["p_st1"][group.id] = group.preferred_start_time_activity_1
                 ampl.param["p_st2"][group.id] = group.preferred_start_time_activity_2
+                ampl.param["p_early_starts"][group.id] = group.p_early_starts
 
             # Set field parameters
             for field in field_optimizer_input.fields:
