@@ -85,21 +85,22 @@ var has_activity_adjacent_days {G, (day_1,day_2) in ADJ_D} binary; # 1 if group 
 # - penalty for incompatible teams' activities on the same day
 # - penalty for late activity starts (assumes that earlier is better)
 # + reward for preferred start times (early/mid/late)
+# * group priority weight, typically varies from 1 to 3 (1=low, 2=medium, 3=high), pairwise penalties/rewards are averaged between the two groups
 
 maximize preference_score:
     sum {f in F, g in G, t in T} y[f,g,t] * prio[g]
-  + sum {f in F, g in G, t in PT[g]} y[f,g,t] * preference_value
+  + sum {f in F, g in G, t in PT[g]} y[f,g,t] * preference_value * prio[g]
   + sum {g in G, f in F, t in T}
-        y[f,g,t] * field_preference_value * field_pref_weight[g,f]
-  - penalty_adj_days * sum {g in G, (day_1,day_2) in ADJ_D} has_activity_adjacent_days[g,day_1,day_2]
+        y[f,g,t] * field_preference_value * field_pref_weight[g,f] * prio[g]
+  - penalty_adj_days * sum {g in G, (day_1,day_2) in ADJ_D} has_activity_adjacent_days[g,day_1,day_2] * prio[g]
   - sum {(g1,g2) in INCOMPATIBLE_GROUPS_SAME_TIME, t in T}
-        penalty_incompatible_group_same_time * (sum {f in F} x[f,g1,t]) * (sum {f in F} x[f,g2,t])
+        penalty_incompatible_group_same_time * ((prio[g1] + prio[g2]) / 2) * (sum {f in F} x[f,g1,t]) * (sum {f in F} x[f,g2,t])
   - sum {(g1,g2) in INCOMPATIBLE_GROUPS_SAME_DAY, day in D}
-        penalty_incompatible_group_same_day * has_activity_day[g1,day] * has_activity_day[g2,day]
-  - penalty_late_starts * sum {f in F, g in G, day in D, s in DT[day]} (ord(s, DT[day]) - 1) * y[f,g,s]
-  + reward_start_time_preference * sum {f in F, g in G, day in D, s in DT[day]} p_early_starts[g] * early_weight[day,s] * y[f,g,s]
-  + reward_start_time_preference * sum {f in F, g in G, day in D, s in DT[day]} p_middle_starts[g] * middle_weight[day,s] * y[f,g,s]
-  + reward_start_time_preference * sum {f in F, g in G, day in D, s in DT[day]} p_late_starts[g] * late_weight[day,s] * y[f,g,s]
+        penalty_incompatible_group_same_day * ((prio[g1] + prio[g2]) / 2) * has_activity_day[g1,day] * has_activity_day[g2,day]
+  - penalty_late_starts * sum {f in F, g in G, day in D, s in DT[day]} (ord(s, DT[day]) - 1) * y[f,g,s] * prio[g]
+  + reward_start_time_preference * sum {f in F, g in G, day in D, s in DT[day]} p_early_starts[g] * early_weight[day,s] * y[f,g,s] * prio[g]
+  + reward_start_time_preference * sum {f in F, g in G, day in D, s in DT[day]} p_middle_starts[g] * middle_weight[day,s] * y[f,g,s] * prio[g]
+  + reward_start_time_preference * sum {f in F, g in G, day in D, s in DT[day]} p_late_starts[g] * late_weight[day,s] * y[f,g,s] * prio[g]
 ;
 
 ###############################################################
