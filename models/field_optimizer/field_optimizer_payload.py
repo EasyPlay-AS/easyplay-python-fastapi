@@ -47,3 +47,4 @@ class FieldOptimizerPayload(BaseModel):
     end_time: str
     incompatible_groups: list[list[str]] | None = None
     incompatible_groups_same_day: list[list[str]] | None = None
+    solve_attempts: int | None = None

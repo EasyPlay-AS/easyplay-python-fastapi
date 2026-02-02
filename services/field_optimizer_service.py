@@ -13,10 +13,76 @@ from utils.field_optimizer import (
 
 class FieldOptimizerService:
 
+    ATTEMPT_PLAN = [
+        {"time": 10, "gap": 0.0},
+        {"time": 10, "gap": 0.02},
+        {"time": 10, "gap": 0.05},
+        {"time": 10, "gap": 0.1},
+        {"time": 10, "gap": 0.2},
+        {"time": 10, "gap": 0.5},
+        {"time": 60, "gap": None},  # accept any feasible after longer run
+    ]
+    RESULT_PRIORITY = {
+        "failure": 0,
+        "infeasible": 1,
+        "no_objective_value": 2,
+        "solved": 3
+    }
+
     @staticmethod
     def solve(payload: FieldOptimizerPayload) -> FieldOptimizerResult:
-        start_time = datetime.now()
+        requested_attempts = payload.solve_attempts or len(FieldOptimizerService.ATTEMPT_PLAN)
+        attempts = min(max(1, requested_attempts),
+                       len(FieldOptimizerService.ATTEMPT_PLAN))
+
         converted_payload = convert_payload_to_input(payload)
+
+        overall_start = datetime.now()
+        best_result: FieldOptimizerResult | None = None
+
+        for attempt_idx in range(attempts):
+            plan = FieldOptimizerService.ATTEMPT_PLAN[attempt_idx]
+            scip_options = FieldOptimizerService._build_scip_options(
+                time_limit_seconds=plan["time"],
+                mip_gap=plan["gap"]
+            )
+
+            result = FieldOptimizerService._solve_once(
+                payload=payload,
+                converted_payload=converted_payload,
+                scip_options=scip_options
+            )
+
+            best_result = FieldOptimizerService._select_best_result(
+                current_best=best_result,
+                candidate=result
+            )
+
+            if best_result and best_result.result == "solved":
+                break
+
+        total_duration_ms = round(
+            (datetime.now() - overall_start).total_seconds() * 1000, 2
+        )
+
+        if best_result:
+            best_result.duration_ms = total_duration_ms
+            return best_result
+
+        return FieldOptimizerResult(
+            result="failure",
+            duration_ms=total_duration_ms,
+            preference_score=None,
+            activities=[]
+        )
+
+    @staticmethod
+    def _solve_once(
+            payload: FieldOptimizerPayload,
+            converted_payload,
+            scip_options: str
+    ) -> FieldOptimizerResult:
+        start_time = datetime.now()
 
         field_optimizer_input = converted_payload.field_optimizer_input
         time_slots_in_range = converted_payload.time_slots_in_range
@@ -29,6 +95,7 @@ class FieldOptimizerService:
             # Initialize AMPL with SCIP solver
             ampl = AMPL()
             ampl.option["solver"] = "scip"
+            ampl.option["scip_options"] = scip_options
 
             # Load the model file
             ampl.read("./ampl/field_optimizer.mod")
@@ -211,3 +278,45 @@ class FieldOptimizerService:
                 preference_score=None,
                 activities=[]
             )
+
+    @staticmethod
+    def _build_scip_options(
+            time_limit_seconds: int,
+            mip_gap: float | None
+    ) -> str:
+        options = [f"lim:time={time_limit_seconds}"]
+
+        if mip_gap is not None:
+            options.append(f"lim:gap={mip_gap}")
+
+        return " ".join(options)
+
+    @staticmethod
+    def _select_best_result(
+            current_best: FieldOptimizerResult | None,
+            candidate: FieldOptimizerResult | None
+    ) -> FieldOptimizerResult | None:
+        if candidate is None:
+            return current_best
+
+        if current_best is None:
+            return candidate
+
+        candidate_priority = FieldOptimizerService.RESULT_PRIORITY.get(
+            candidate.result, 0)
+        current_priority = FieldOptimizerService.RESULT_PRIORITY.get(
+            current_best.result, 0)
+
+        if candidate_priority > current_priority:
+            return candidate
+
+        if candidate_priority == current_priority == FieldOptimizerService.RESULT_PRIORITY["solved"]:
+            candidate_score = candidate.preference_score
+            current_score = current_best.preference_score
+            if candidate_score is not None and current_score is not None:
+                if candidate_score > current_score:
+                    return candidate
+            elif candidate_score is not None and current_score is None:
+                return candidate
+
+        return current_best
