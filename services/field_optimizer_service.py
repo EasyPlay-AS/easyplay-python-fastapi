@@ -141,13 +141,33 @@ class FieldOptimizerService:
             for field in field_optimizer_input.fields:
                 ampl.set["UT"][field.id] = field.unavailable_start_times
 
-            # Solve the model
-            ampl.solve()
+            # Solve the model with progressive limits:
+            # 1) 5s, best possible (gap 0)
+            # 2) 10s, within 2% (gap 0.02)
+            # 3) 180s, any feasible (gap 1)
+            solve_iterations = [
+                {"time": 5, "gap": 0},
+                {"time": 10, "gap": 0.02},
+                {"time": 180, "gap": 1},
+            ]
 
-            # Check solve result
-            solve_result = ampl.get_value("solve_result")
-            preference_score = ampl.obj["preference_score"]
-            preference_score_value = preference_score.value()
+            solve_result = None
+            preference_score_value = None
+            for iteration in solve_iterations:
+                ampl.option["scip_options"] = (
+                    f"lim:time={iteration['time']} lim:gap={iteration['gap']}"
+                )
+                ampl.solve()
+
+                solve_result = ampl.get_value("solve_result")
+                if solve_result == "infeasible":
+                    break
+
+                preference_score = ampl.obj["preference_score"]
+                preference_score_value = preference_score.value()
+
+                if preference_score_value is not None and preference_score_value > 0:
+                    break
 
             # 1. Infeasible solution
             if solve_result == "infeasible":
@@ -162,7 +182,7 @@ class FieldOptimizerService:
                 )
 
             # 2. No objective value
-            if preference_score_value <= 0:
+            if preference_score_value is None or preference_score_value <= 0:
                 end_time = datetime.now()
                 duration_ms = round(
                     (end_time - start_time).total_seconds() * 1000, 2)
