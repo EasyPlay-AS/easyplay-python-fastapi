@@ -163,6 +163,34 @@ class FieldOptimizerService:
 
             # 2. No objective value
             if preference_score_value <= 0:
+                activities_not_generated = []
+                activity_counts: dict[str, int] = {}
+                try:
+                    y_values = ampl.get_variable("y").get_values().to_dict()
+                    for (f, g, t), value in y_values.items():
+                        if value > 0.5:
+                            activity_counts[g] = activity_counts.get(g, 0) + 1
+                except Exception:
+                    pass
+
+                shortfall_values = {}
+                try:
+                    shortfall_values = ampl.get_variable(
+                        "min_activity_shortfall").get_values().to_dict()
+                except Exception:
+                    shortfall_values = {}
+
+                for group in field_optimizer_input.groups:
+                    shortfall_value = shortfall_values.get(
+                        group.id, shortfall_values.get((group.id,), 0)
+                    )
+                    if shortfall_value and shortfall_value > 1e-6:
+                        activities_not_generated.append({
+                            "team": {"id": group.id, "name": group.name},
+                            "activities": activity_counts.get(group.id, 0),
+                            "missing_activities": float(shortfall_value),
+                        })
+
                 end_time = datetime.now()
                 duration_ms = round(
                     (end_time - start_time).total_seconds() * 1000, 2)
@@ -170,7 +198,8 @@ class FieldOptimizerService:
                     result="no_objective_value",
                     duration_ms=duration_ms,
                     preference_score=None,
-                    activities=[]
+                    activities=[],
+                    activities_not_generated=activities_not_generated
                 )
 
             # 3. Else -> Successfully solved
