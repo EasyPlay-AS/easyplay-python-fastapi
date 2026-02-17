@@ -12,6 +12,143 @@ from utils.common import create_number_to_index_mapping
 from .convert_time_range_to_timeslot_ids import convert_time_range_to_timeslot_ids
 
 TIME_SLOT_DURATION_MINUTES = 15
+SLOTS_PER_DAY = (24 * 60) // TIME_SLOT_DURATION_MINUTES  # 96
+
+
+def compute_effective_time_window(
+    start_time: str,
+    end_time: str,
+    existing_activities: list[ExistingTeamActivity]
+) -> tuple[str, str]:
+    """
+    Expands the optimization time window to include times of predefined activities.
+
+    Predefined activities may fall outside the user's normal time window
+    (e.g., a Saturday 10:00 activity when the window is 16:00-22:00).
+    The solver needs these timeslots in T to fix x/y variables.
+    """
+    if not existing_activities:
+        return start_time, end_time
+
+    def time_str_to_minutes(t: str) -> int:
+        h, m = t.split(":")
+        return int(h) * 60 + int(m)
+
+    def minutes_to_time_str(minutes: int) -> str:
+        h = minutes // 60
+        m = minutes % 60
+        return f"{h:02d}:{m:02d}"
+
+    effective_start = time_str_to_minutes(start_time)
+    effective_end = time_str_to_minutes(end_time)
+
+    for activity in existing_activities:
+        # Derive time-of-day from global timeslot ID
+        start_slot_in_day = (activity.start_timeslot - 1) % SLOTS_PER_DAY
+        start_minutes = start_slot_in_day * TIME_SLOT_DURATION_MINUTES
+
+        end_slot_in_day = (activity.end_timeslot - 1) % SLOTS_PER_DAY
+        end_minutes = end_slot_in_day * TIME_SLOT_DURATION_MINUTES
+
+        if start_minutes < effective_start:
+            effective_start = start_minutes
+        if end_minutes > effective_end:
+            effective_end = end_minutes
+
+    return minutes_to_time_str(effective_start), minutes_to_time_str(effective_end)
+
+
+def split_groups_for_existing_activities(
+    groups: list[Group],
+    existing_activities: list[ExistingTeamActivity],
+    timeslot_to_index_map: dict[int, int]
+) -> tuple[list[Group], list[ExistingTeamActivity], list[list[str]], list[list[str]]]:
+    """
+    When a predefined activity has a different size_required or duration than
+    its group, create an auto-subgroup so the AMPL model uses the correct
+    per-group parameters (size_req[g], d[g]) for that activity.
+
+    Returns:
+        (updated_groups, updated_activities,
+         new_incompatible_same_day, new_incompatible_same_time)
+    """
+    if not existing_activities:
+        return groups, existing_activities, [], []
+
+    group_map = {g.id: g for g in groups}
+    new_groups: list[Group] = []
+    updated_activities = list(existing_activities)
+    new_incompatible_same_day: list[list[str]] = []
+    new_incompatible_same_time: list[list[str]] = []
+    subgroup_counter: dict[str, int] = {}
+
+    for i, activity in enumerate(updated_activities):
+        parent = group_map.get(activity.team_id)
+        if not parent:
+            continue
+
+        size_match = activity.size_required == parent.size_required
+        duration_match = activity.duration_slots == parent.duration
+        if size_match and duration_match:
+            continue
+
+        # Derive start index for the subgroup's possible_start_times
+        start_idx = timeslot_to_index_map.get(activity.start_timeslot)
+        if start_idx is None:
+            continue
+
+        # Create auto-subgroup with the activity's actual size and duration
+        counter = subgroup_counter.get(parent.id, 0)
+        subgroup_id = f"{parent.id}__existing_{counter}"
+        subgroup_counter[parent.id] = counter + 1
+
+        new_group = Group(
+            id=subgroup_id,
+            name=f"{parent.name} (predefined)",
+            minimum_number_of_activities=1,
+            maximum_number_of_activities=1,
+            possible_start_times=[start_idx],
+            preferred_start_times=[],
+            preferred_start_time_activity_1=0,
+            preferred_start_time_activity_2=0,
+            size_required=activity.size_required,
+            duration=activity.duration_slots,
+            priority=parent.priority,
+            preferred_field_ids=parent.preferred_field_ids,
+            p_early_starts=parent.p_early_starts
+        )
+        new_groups.append(new_group)
+        group_map[subgroup_id] = new_group
+
+        # Reduce parent's activity count
+        parent.minimum_number_of_activities = max(0, parent.minimum_number_of_activities - 1)
+        parent.maximum_number_of_activities = max(0, parent.maximum_number_of_activities - 1)
+
+        # Reassign activity to subgroup
+        updated_activities[i] = ExistingTeamActivity(
+            team_id=subgroup_id,
+            team_name=activity.team_name,
+            stadium_id=activity.stadium_id,
+            stadium_name=activity.stadium_name,
+            start_timeslot=activity.start_timeslot,
+            end_timeslot=activity.end_timeslot,
+            duration_slots=activity.duration_slots,
+            size_required=activity.size_required
+        )
+
+        # Incompatibility: parent and subgroup shouldn't overlap
+        new_incompatible_same_day.append([parent.id, subgroup_id])
+        new_incompatible_same_time.append([parent.id, subgroup_id])
+
+        mismatch_details = []
+        if not size_match:
+            mismatch_details.append(f"size {parent.size_required}->{activity.size_required}")
+        if not duration_match:
+            mismatch_details.append(f"duration {parent.duration}->{activity.duration_slots}")
+        print(f"Auto-subgroup '{subgroup_id}' created for '{activity.team_name}' ({', '.join(mismatch_details)})")
+
+    all_groups = groups + new_groups
+    return all_groups, updated_activities, new_incompatible_same_day, new_incompatible_same_time
 
 
 class ConvertedPayload(BaseModel):
@@ -21,13 +158,21 @@ class ConvertedPayload(BaseModel):
     timeslot_to_index_map: dict[int, int]
     time_slot_duration_minutes: int
     existing_activities: list[ExistingTeamActivity]
+    auto_incompatible_same_day: list[list[str]]
+    auto_incompatible_same_time: list[list[str]]
 
 
 def convert_payload_to_input(
         payload: FieldOptimizerPayload
 ) -> ConvertedPayload:
+    # Expand time window to include predefined activities that may fall outside
+    # the user's normal window (e.g., weekend 10:00 when window is 16:00-22:00)
+    effective_start_time, effective_end_time = compute_effective_time_window(
+        payload.start_time, payload.end_time, payload.existing_team_activities
+    )
+
     time_slots_in_range = generate_time_slots_in_range(
-        payload.start_time, payload.end_time, TIME_SLOT_DURATION_MINUTES)
+        effective_start_time, effective_end_time, TIME_SLOT_DURATION_MINUTES)
 
     timeslot_ids_by_week_day = get_timeslot_ids_by_week_day(
         time_slots_in_range)
@@ -78,6 +223,13 @@ def convert_payload_to_input(
             p_early_starts=team.p_early_starts or 0
         ))
 
+    # Auto-split groups when predefined activities have different size/duration
+    groups, updated_existing, auto_incomp_day, auto_incomp_time = (
+        split_groups_for_existing_activities(
+            groups, payload.existing_team_activities, timeslot_to_index_map
+        )
+    )
+
     timeslot_ids_indexes = [
         [timeslot_to_index_map[timeslot_id] for timeslot_id in timeslot_ids]
         for timeslot_ids in timeslot_ids_by_week_day
@@ -93,5 +245,7 @@ def convert_payload_to_input(
         index_to_timeslot_map=index_to_timeslot_map,
         timeslot_to_index_map=timeslot_to_index_map,
         time_slot_duration_minutes=TIME_SLOT_DURATION_MINUTES,
-        existing_activities=payload.existing_team_activities
+        existing_activities=updated_existing,
+        auto_incompatible_same_day=auto_incomp_day,
+        auto_incompatible_same_time=auto_incomp_time
     )

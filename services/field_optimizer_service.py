@@ -24,6 +24,8 @@ class FieldOptimizerService:
         timeslot_to_index_map = converted_payload.timeslot_to_index_map
         time_slot_duration_minutes = converted_payload.time_slot_duration_minutes
         existing_activities = converted_payload.existing_activities
+        auto_incompatible_same_day = converted_payload.auto_incompatible_same_day
+        auto_incompatible_same_time = converted_payload.auto_incompatible_same_time
 
         try:
             # Initialize AMPL with SCIP solver
@@ -66,6 +68,27 @@ class FieldOptimizerService:
             # Set start timeslots for each day (ST)
             ampl.set["ST"] = day_start_timeslots
 
+            # --- Handle existing activities FIRST so we can expand AT[g] ---
+            aat_map, processed_activities = build_aat_map(
+                existing_activities=existing_activities,
+                field_optimizer_input=field_optimizer_input,
+                timeslot_to_index_map=timeslot_to_index_map
+            )
+
+            # Include predefined activities' start times in AT[g] to avoid
+            # infeasibility: their y-variables are fixed to 1, but the
+            # activity_can_not_start constraint forces y=0 for times not
+            # in AT[g]. This does NOT allow the solver to place new
+            # activities here — only prevents conflict with the fixed values.
+            for activity in processed_activities:
+                group = next(
+                    (g for g in field_optimizer_input.groups
+                     if g.id == activity.group_id), None
+                )
+                if group and activity.start_index not in group.possible_start_times:
+                    group.possible_start_times.append(activity.start_index)
+                    group.possible_start_times.sort()
+
             # Set available starting times for each group (AT)
             for group in field_optimizer_input.groups:
                 ampl.set["AT"][group.id] = group.possible_start_times
@@ -94,24 +117,18 @@ class FieldOptimizerService:
                 ampl.param["size"][field.id] = field.size
 
             # Set incompatible groups (teams that should not have simultaneous activities)
-            if payload.incompatible_groups:
-                ampl.set["INCOMPATIBLE_GROUPS_SAME_TIME"] = payload.incompatible_groups
-            else:
-                ampl.set["INCOMPATIBLE_GROUPS_SAME_TIME"] = []
+            # Include auto-generated pairs from predefined activity subgroups
+            incomp_same_time = list(payload.incompatible_groups or [])
+            incomp_same_time.extend(auto_incompatible_same_time)
+            ampl.set["INCOMPATIBLE_GROUPS_SAME_TIME"] = incomp_same_time
 
             # Set incompatible groups same day (subgroups from same team)
-            if payload.incompatible_groups_same_day:
-                ampl.set["INCOMPATIBLE_GROUPS_SAME_DAY"] = payload.incompatible_groups_same_day
-            else:
-                ampl.set["INCOMPATIBLE_GROUPS_SAME_DAY"] = []
+            # Include auto-generated pairs from predefined activity subgroups
+            incomp_same_day = list(payload.incompatible_groups_same_day or [])
+            incomp_same_day.extend(auto_incompatible_same_day)
+            ampl.set["INCOMPATIBLE_GROUPS_SAME_DAY"] = incomp_same_day
 
-            # Handle existing activities (AAT - Already Assigned Times)
-            aat_map, processed_activities = build_aat_map(
-                existing_activities=existing_activities,
-                field_optimizer_input=field_optimizer_input,
-                timeslot_to_index_map=timeslot_to_index_map
-            )
-
+            # Set AAT (Already Assigned Timeslots) for existing activities
             for field in field_optimizer_input.fields:
                 for group in field_optimizer_input.groups:
                     key = (field.id, group.id)
@@ -120,6 +137,7 @@ class FieldOptimizerService:
                     else:
                         ampl.set["AAT"][field.id, group.id] = []
 
+            # Fix x and y variables for existing activities
             for activity in processed_activities:
                 try:
                     ampl.var["y"][activity.field_id,
