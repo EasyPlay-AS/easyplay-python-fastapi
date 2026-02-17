@@ -224,8 +224,11 @@ class FieldOptimizerService:
                 if solve_result == "infeasible":
                     break
 
-                preference_score = ampl.obj["preference_score"]
-                preference_score_value = preference_score.value()
+                try:
+                    preference_score = ampl.obj["preference_score"]
+                    preference_score_value = preference_score.value()
+                except Exception:
+                    preference_score_value = None
 
                 # Break if solver proved optimality (even if score is negative
                 # due to soft constraint penalties — that is still a valid solution)
