@@ -1,7 +1,12 @@
 from datetime import datetime
 from amplpy import AMPL
 from models.field_optimizer.field_optimizer_payload import FieldOptimizerPayload
-from models.field_optimizer.field_optimizer_result import FieldOptimizerResult
+from models.field_optimizer.field_optimizer_result import (
+    FieldOptimizerResult,
+    ActivitiesNotGenerated,
+    Team,
+)
+from models.field_optimizer.field_optimizer_input import Group
 from utils.field_optimizer import (
     convert_payload_to_input,
     convert_ampl_x_values_to_allocations,
@@ -9,6 +14,44 @@ from utils.field_optimizer import (
     convert_field_allocations_to_activities,
     build_aat_map,
 )
+
+
+def _extract_shortfall_info(
+    ampl: AMPL,
+    groups: list[Group],
+) -> list[ActivitiesNotGenerated]:
+    """Read min_activity_shortfall from the solved AMPL model.
+    Returns groups with nonzero shortfall."""
+    result = []
+
+    activity_counts: dict[str, int] = {}
+    try:
+        y_values = ampl.get_variable("y").get_values().to_dict()
+        for (f, g, t), value in y_values.items():
+            if value > 0.5:
+                activity_counts[g] = activity_counts.get(g, 0) + 1
+    except Exception:
+        pass
+
+    shortfall_values: dict = {}
+    try:
+        shortfall_values = ampl.get_variable(
+            "min_activity_shortfall").get_values().to_dict()
+    except Exception:
+        pass
+
+    for group in groups:
+        shortfall_value = shortfall_values.get(
+            group.id, shortfall_values.get((group.id,), 0)
+        )
+        if shortfall_value and shortfall_value > 1e-6:
+            result.append(ActivitiesNotGenerated(
+                team=Team(id=group.id, name=group.name),
+                activities=activity_counts.get(group.id, 0),
+                missing_activities=float(shortfall_value),
+            ))
+
+    return result
 
 
 class FieldOptimizerService:
@@ -184,7 +227,9 @@ class FieldOptimizerService:
                 preference_score = ampl.obj["preference_score"]
                 preference_score_value = preference_score.value()
 
-                if preference_score_value is not None and preference_score_value > 0:
+                # Break if solver proved optimality (even if score is negative
+                # due to soft constraint penalties — that is still a valid solution)
+                if solve_result == "solved":
                     break
 
             # 1. Infeasible solution
@@ -199,8 +244,8 @@ class FieldOptimizerService:
                     activities=[]
                 )
 
-            # 2. No objective value
-            if preference_score_value is None or preference_score_value <= 0:
+            # 2. No objective value (solver error / edge case)
+            if preference_score_value is None:
                 end_time = datetime.now()
                 duration_ms = round(
                     (end_time - start_time).total_seconds() * 1000, 2)
@@ -211,7 +256,7 @@ class FieldOptimizerService:
                     activities=[]
                 )
 
-            # 3. Else -> Successfully solved
+            # 3. Solved (possibly with shortfall from soft constraints)
             field_allocations = convert_ampl_x_values_to_allocations(
                 ampl, field_optimizer_input.groups)
 
@@ -228,6 +273,10 @@ class FieldOptimizerService:
                 index_to_timeslot_map=index_to_timeslot_map
             )
 
+            activities_not_generated = _extract_shortfall_info(
+                ampl, field_optimizer_input.groups
+            )
+
             end_time = datetime.now()
             duration_ms = round(
                 (end_time - start_time).total_seconds() * 1000, 2)
@@ -236,7 +285,8 @@ class FieldOptimizerService:
                 result="solved",
                 duration_ms=duration_ms,
                 preference_score=preference_score_value,
-                activities=result_activities
+                activities=result_activities,
+                activities_not_generated=activities_not_generated if activities_not_generated else None,
             )
         except Exception as e:
             print(f"ERROR: {e}")

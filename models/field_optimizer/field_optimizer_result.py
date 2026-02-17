@@ -21,8 +21,15 @@ class Activity(BaseModel):
     size: int
 
 
+class ActivitiesNotGenerated(BaseModel):
+    team: Team
+    activities: int
+    missing_activities: float
+
+
 class FieldOptimizerResult(BaseModel):
     result: Literal["solved", "infeasible", "no_objective_value", "failure"]
     duration_ms: float
     preference_score: float | None
     activities: list[Activity]
+    activities_not_generated: list[ActivitiesNotGenerated] | None = None
