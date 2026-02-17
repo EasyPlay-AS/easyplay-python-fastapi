@@ -143,11 +143,11 @@ class FieldOptimizerService:
 
             # Solve the model with progressive limits:
             # 1) 5s, best possible (gap 0)
-            # 2) 10s, within 2% (gap 0.02)
+            # 2) 20s, within 5% (gap 0.05)
             # 3) 180s, any feasible (gap 1)
             solve_iterations = [
                 {"time": 5, "gap": 0},
-                {"time": 10, "gap": 0.02},
+                {"time": 20, "gap": 0.05},
                 {"time": 180, "gap": 1},
             ]
 
