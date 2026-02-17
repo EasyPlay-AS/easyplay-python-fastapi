@@ -12,6 +12,50 @@ from utils.common import create_number_to_index_mapping
 from .convert_time_range_to_timeslot_ids import convert_time_range_to_timeslot_ids
 
 TIME_SLOT_DURATION_MINUTES = 15
+SLOTS_PER_DAY = (24 * 60) // TIME_SLOT_DURATION_MINUTES  # 96
+
+
+def compute_effective_time_window(
+    start_time: str,
+    end_time: str,
+    existing_activities: list[ExistingTeamActivity]
+) -> tuple[str, str]:
+    """
+    Expands the optimization time window to include times of predefined activities.
+
+    Predefined activities may fall outside the user's normal time window
+    (e.g., a Saturday 10:00 activity when the window is 16:00-22:00).
+    The solver needs these timeslots in T to fix x/y variables.
+    """
+    if not existing_activities:
+        return start_time, end_time
+
+    def time_str_to_minutes(t: str) -> int:
+        h, m = t.split(":")
+        return int(h) * 60 + int(m)
+
+    def minutes_to_time_str(minutes: int) -> str:
+        h = minutes // 60
+        m = minutes % 60
+        return f"{h:02d}:{m:02d}"
+
+    effective_start = time_str_to_minutes(start_time)
+    effective_end = time_str_to_minutes(end_time)
+
+    for activity in existing_activities:
+        # Derive time-of-day from global timeslot ID
+        start_slot_in_day = (activity.start_timeslot - 1) % SLOTS_PER_DAY
+        start_minutes = start_slot_in_day * TIME_SLOT_DURATION_MINUTES
+
+        end_slot_in_day = (activity.end_timeslot - 1) % SLOTS_PER_DAY
+        end_minutes = end_slot_in_day * TIME_SLOT_DURATION_MINUTES
+
+        if start_minutes < effective_start:
+            effective_start = start_minutes
+        if end_minutes > effective_end:
+            effective_end = end_minutes
+
+    return minutes_to_time_str(effective_start), minutes_to_time_str(effective_end)
 
 
 class ConvertedPayload(BaseModel):
@@ -26,8 +70,14 @@ class ConvertedPayload(BaseModel):
 def convert_payload_to_input(
         payload: FieldOptimizerPayload
 ) -> ConvertedPayload:
+    # Expand time window to include predefined activities that may fall outside
+    # the user's normal window (e.g., weekend 10:00 when window is 16:00-22:00)
+    effective_start_time, effective_end_time = compute_effective_time_window(
+        payload.start_time, payload.end_time, payload.existing_team_activities
+    )
+
     time_slots_in_range = generate_time_slots_in_range(
-        payload.start_time, payload.end_time, TIME_SLOT_DURATION_MINUTES)
+        effective_start_time, effective_end_time, TIME_SLOT_DURATION_MINUTES)
 
     timeslot_ids_by_week_day = get_timeslot_ids_by_week_day(
         time_slots_in_range)
