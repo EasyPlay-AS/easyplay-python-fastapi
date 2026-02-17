@@ -66,6 +66,27 @@ class FieldOptimizerService:
             # Set start timeslots for each day (ST)
             ampl.set["ST"] = day_start_timeslots
 
+            # --- Handle existing activities FIRST so we can expand AT[g] ---
+            aat_map, processed_activities = build_aat_map(
+                existing_activities=existing_activities,
+                field_optimizer_input=field_optimizer_input,
+                timeslot_to_index_map=timeslot_to_index_map
+            )
+
+            # Include predefined activities' start times in AT[g] to avoid
+            # infeasibility: their y-variables are fixed to 1, but the
+            # activity_can_not_start constraint forces y=0 for times not
+            # in AT[g]. This does NOT allow the solver to place new
+            # activities here — only prevents conflict with the fixed values.
+            for activity in processed_activities:
+                group = next(
+                    (g for g in field_optimizer_input.groups
+                     if g.id == activity.group_id), None
+                )
+                if group and activity.start_index not in group.possible_start_times:
+                    group.possible_start_times.append(activity.start_index)
+                    group.possible_start_times.sort()
+
             # Set available starting times for each group (AT)
             for group in field_optimizer_input.groups:
                 ampl.set["AT"][group.id] = group.possible_start_times
@@ -105,13 +126,7 @@ class FieldOptimizerService:
             else:
                 ampl.set["INCOMPATIBLE_GROUPS_SAME_DAY"] = []
 
-            # Handle existing activities (AAT - Already Assigned Times)
-            aat_map, processed_activities = build_aat_map(
-                existing_activities=existing_activities,
-                field_optimizer_input=field_optimizer_input,
-                timeslot_to_index_map=timeslot_to_index_map
-            )
-
+            # Set AAT (Already Assigned Timeslots) for existing activities
             for field in field_optimizer_input.fields:
                 for group in field_optimizer_input.groups:
                     key = (field.id, group.id)
@@ -120,6 +135,7 @@ class FieldOptimizerService:
                     else:
                         ampl.set["AAT"][field.id, group.id] = []
 
+            # Fix x and y variables for existing activities
             for activity in processed_activities:
                 try:
                     ampl.var["y"][activity.field_id,
