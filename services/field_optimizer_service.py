@@ -265,6 +265,18 @@ class FieldOptimizerService:
             field_allocations = convert_ampl_x_values_to_allocations(
                 ampl, field_optimizer_input.groups)
 
+            existing_allocation_keys = set()
+            for activity in processed_activities:
+                for idx in activity.timeslot_indexes:
+                    existing_allocation_keys.add(
+                        (activity.field_id, activity.group_id, idx))
+
+            field_allocations = [
+                alloc for alloc in field_allocations
+                if (alloc.field, alloc.group, alloc.timeslot_id)
+                not in existing_allocation_keys
+            ]
+
             field_activities = convert_field_allocations_to_activities(
                 field_allocations,
                 field_optimizer_input.time_slots
