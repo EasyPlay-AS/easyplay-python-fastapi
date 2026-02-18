@@ -1,3 +1,4 @@
+import traceback
 from datetime import datetime
 from amplpy import AMPL
 from models.field_optimizer.field_optimizer_payload import FieldOptimizerPayload
@@ -203,21 +204,22 @@ class FieldOptimizerService:
                 ampl.set["UT"][field.id] = field.unavailable_start_times
 
             # Solve the model with progressive limits:
-            # 1) 5s, best possible (gap 0)
-            # 2) 20s, within 5% (gap 0.05)
-            # 3) 180s, any feasible (gap 1)
+            # 1) 10s, prove optimality (gap 0)
+            # 2) 20s, within 5% OR within 100 points (absgap handles negative objectives)
+            # 3) 30s, return best found (safety net)
             solve_iterations = [
-                {"time": 5, "gap": 0},
-                {"time": 20, "gap": 0.05},
-                {"time": 180, "gap": 1},
+                {"time": 10, "gap": 0},
+                {"time": 20, "gap": 0.05, "absgap": 100},
+                {"time": 30, "gap": 1, "absgap": 100},
             ]
 
             solve_result = None
             preference_score_value = None
             for iteration in solve_iterations:
-                ampl.option["scip_options"] = (
-                    f"lim:time={iteration['time']} lim:gap={iteration['gap']}"
-                )
+                scip_opts = f"lim:time={iteration['time']} lim:gap={iteration['gap']}"
+                if "absgap" in iteration:
+                    scip_opts += f" lim:absgap={iteration['absgap']}"
+                ampl.option["scip_options"] = scip_opts
                 ampl.solve()
 
                 solve_result = ampl.get_value("solve_result")
@@ -292,7 +294,8 @@ class FieldOptimizerService:
                 activities_not_generated=activities_not_generated if activities_not_generated else None,
             )
         except Exception as e:
-            print(f"ERROR: {e}")
+            print(f"ERROR: {e}", flush=True)
+            traceback.print_exc()
             end_time = datetime.now()
             duration_ms = round(
                 (end_time - start_time).total_seconds() * 1000, 2)
@@ -300,5 +303,6 @@ class FieldOptimizerService:
                 result="failure",
                 duration_ms=duration_ms,
                 preference_score=None,
-                activities=[]
+                activities=[],
+                error_message=str(e),
             )

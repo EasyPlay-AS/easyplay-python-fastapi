@@ -33,3 +33,4 @@ class FieldOptimizerResult(BaseModel):
     preference_score: float | None
     activities: list[Activity]
     activities_not_generated: list[ActivitiesNotGenerated] | None = None
+    error_message: str | None = None
