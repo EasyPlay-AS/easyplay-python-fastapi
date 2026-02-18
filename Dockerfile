@@ -3,6 +3,9 @@ FROM python:3.11-slim-bullseye
 # Create and change to the application directory.
 WORKDIR /app
 
+# Ensure Python output is sent straight to logs (no buffering)
+ENV PYTHONUNBUFFERED=1
+
 # Install required system dependencies using apt, including libgfortran5
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgfortran5 \
