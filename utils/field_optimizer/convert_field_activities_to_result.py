@@ -29,9 +29,13 @@ def convert_field_activities_to_result(
     activities = []
 
     for activity in field_activities:
-        # Find the team
+        # Find the team (auto-subgroups like "id__existing_0" map back to parent)
+        group_id = activity.group
+        if "__existing_" in group_id:
+            group_id = group_id.split("__existing_")[0]
+
         team = next(
-            (team for team in payload.teams if team.id == activity.group), None)
+            (team for team in payload.teams if team.id == group_id), None)
         if not team:
             raise ValueError(f"Team with ID '{activity.group}' not found")
 
