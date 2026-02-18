@@ -2,6 +2,7 @@ import os
 from amplpy import modules
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI
+from fastapi.responses import StreamingResponse
 from auth import verify_token
 from models.example.example_input import ExampleInput
 from models.field_optimizer.field_optimizer_result import FieldOptimizerResult
@@ -62,3 +63,17 @@ async def solve_field_optimizer(
 ) -> FieldOptimizerResult:
     result = FieldOptimizerService.solve(payload)
     return result
+
+
+@app.post("/solve-field-optimizer-stream")
+async def solve_field_optimizer_stream(
+    payload: FieldOptimizerPayload, _: str = Depends(verify_token)
+):
+    return StreamingResponse(
+        FieldOptimizerService.solve_stream(payload),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
