@@ -64,7 +64,9 @@ param penalty_incompatible_group_same_day >= 0 default 10; # Global penalty for 
 param penalty_adj_days = 0.5; #penalty weight for consecutive-day activities
 param penalty_late_starts default 0.01; #generally it is considered better to start early rather than late
 param reward_start_time_preference >= 0 default 1; #reward weight for start-time preferences
-param penalty_min_activities >= 0 default 1000; #penalty for falling short of n_min[g]
+param penalty_shortfall_tier1 >= 0 default 300;  # 1st missing activity
+param penalty_shortfall_tier2 >= 0 default 1500; # 2nd missing activity (5x tier1)
+param penalty_shortfall_tier3 >= 0 default 6000; # 3rd+ missing activity (20x tier1)
 
 
 ###############################################################
@@ -76,6 +78,9 @@ var y {F,G,T} binary;
 var has_activity_day {G, D} binary; # 1 if group g has any activity start on day
 var has_activity_adjacent_days {G, (day_1,day_2) in ADJ_D} binary; # 1 if group has activities on adjacent days
 var min_activity_shortfall {g in G} >= 0; # shortfall vs n_min[g]
+var shortfall_tier1 {G} >= 0, <= 1; # 1st missing activity (cheapest)
+var shortfall_tier2 {G} >= 0, <= 1; # 2nd missing activity
+var shortfall_tier3 {G} >= 0;       # 3rd+ missing activities (most expensive)
 
 
 # Sum of activity starts
@@ -102,7 +107,11 @@ maximize preference_score:
   + reward_start_time_preference * sum {f in F, g in G, day in D, s in DT[day]} p_early_starts[g] * early_weight[day,s] * y[f,g,s] * prio[g]
   + reward_start_time_preference * sum {f in F, g in G, day in D, s in DT[day]} p_middle_starts[g] * middle_weight[day,s] * y[f,g,s] * prio[g]
   + reward_start_time_preference * sum {f in F, g in G, day in D, s in DT[day]} p_late_starts[g] * late_weight[day,s] * y[f,g,s] * prio[g]
-  - penalty_min_activities * sum {g in G} min_activity_shortfall[g] * prio[g]
+  - sum {g in G} (
+      penalty_shortfall_tier1 * shortfall_tier1[g] * prio[g]
+    + penalty_shortfall_tier2 * shortfall_tier2[g] * prio[g]
+    + penalty_shortfall_tier3 * shortfall_tier3[g] * prio[g]
+  )
 ;
 
 ###############################################################
@@ -124,6 +133,10 @@ subject to max_activities {g in G}:
 # Minimum activities for a team
 subject to min_activities {g in G}:
 	sum {t in T, f in F} y[f,g,t] + min_activity_shortfall[g] >= n_min[g];
+
+# Decompose shortfall into progressive tiers (solver fills cheapest first)
+subject to shortfall_decomp {g in G}:
+    min_activity_shortfall[g] = shortfall_tier1[g] + shortfall_tier2[g] + shortfall_tier3[g];
 
 # Activities can not occupy unavailable field times
 subject to unavailable_field_times {f in F, t in UT[f]}:
