@@ -28,9 +28,6 @@ def compute_effective_time_window(
     (e.g., a Saturday 10:00 activity when the window is 16:00-22:00).
     The solver needs these timeslots in T to fix x/y variables.
     """
-    if not existing_activities:
-        return start_time, end_time
-
     def time_str_to_minutes(t: str) -> int:
         h, m = t.split(":")
         return int(h) * 60 + int(m)
