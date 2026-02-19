@@ -18,6 +18,12 @@ from utils.field_optimizer import (
     build_aat_map,
 )
 
+SOLVE_ITERATIONS = [
+    {"time": 10, "gap": 0},
+    {"time": 30, "gap": 0.02},
+    {"time": 60, "gap": 1},
+]
+
 
 def _extract_shortfall_info(
     ampl: AMPL,
@@ -205,19 +211,9 @@ class FieldOptimizerService:
             for field in field_optimizer_input.fields:
                 ampl.set["UT"][field.id] = field.unavailable_start_times
 
-            # Solve the model with progressive limits:
-            # 1) 10s, prove optimality (gap 0)
-            # 2) 20s, within 5% OR within 100 points (absgap handles negative objectives)
-            # 3) 30s, return best found (safety net)
-            solve_iterations = [
-                {"time": 10, "gap": 0},
-                {"time": 20, "gap": 0.05, "absgap": 100},
-                {"time": 30, "gap": 1, "absgap": 100},
-            ]
-
             solve_result = None
             preference_score_value = None
-            for iteration in solve_iterations:
+            for iteration in SOLVE_ITERATIONS:
                 scip_opts = f"lim:time={iteration['time']} lim:gap={iteration['gap']}"
                 if "absgap" in iteration:
                     scip_opts += f" lim:absgap={iteration['absgap']}"
@@ -541,20 +537,14 @@ class FieldOptimizerService:
                 "elapsed_ms": elapsed_ms,
             })
 
-            solve_iterations = [
-                {"time": 10, "gap": 0},
-                {"time": 20, "gap": 0.05, "absgap": 100},
-                {"time": 30, "gap": 1, "absgap": 100},
-            ]
-
             solve_result = None
             preference_score_value = None
 
-            for i, iteration in enumerate(solve_iterations):
+            for i, iteration in enumerate(SOLVE_ITERATIONS):
                 yield FieldOptimizerService._sse_event({
                     "type": "iteration_start",
                     "iteration": i + 1,
-                    "total_iterations": len(solve_iterations),
+                    "total_iterations": len(SOLVE_ITERATIONS),
                     "time_limit": iteration["time"],
                     "gap_limit": iteration["gap"],
                 })
@@ -578,7 +568,7 @@ class FieldOptimizerService:
                 yield FieldOptimizerService._sse_event({
                     "type": "iteration_complete",
                     "iteration": i + 1,
-                    "total_iterations": len(solve_iterations),
+                    "total_iterations": len(SOLVE_ITERATIONS),
                     "solve_result": solve_result,
                     "preference_score": preference_score_value,
                     "elapsed_ms": elapsed_ms,
