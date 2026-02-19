@@ -20,6 +20,7 @@ class Team(BaseModel):
     min_number_of_activities: int
     max_number_of_activities: int
     time_range: TimeRange
+    time_ranges: list[TimeRange] | None = None
     duration: int
     size_required: int
     priority: int
