@@ -38,3 +38,23 @@ def convert_time_range_to_timeslot_ids(
     ]
 
     return timeslot_ids_indexes
+
+
+def convert_time_ranges_to_timeslot_ids(
+    time_ranges: list[TimeRange],
+    timeslot_to_index_map: dict[int, int]
+) -> list[int]:
+    """
+    Convert multiple time ranges to a union of timeslot ids.
+
+    Args:
+        time_ranges: The time ranges to convert
+        timeslot_to_index_map: The full mapping of timeslot ids to indexes
+    Returns:
+        A sorted list of unique timeslot ids mapped to indexes
+    """
+    all_ids: set[int] = set()
+    for tr in time_ranges:
+        ids = convert_time_range_to_timeslot_ids(tr, timeslot_to_index_map)
+        all_ids.update(ids)
+    return sorted(all_ids)

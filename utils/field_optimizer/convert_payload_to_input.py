@@ -9,7 +9,7 @@ from utils.time_slots import (
     generate_time_slots_in_range, get_timeslot_ids_by_week_day
 )
 from utils.common import create_number_to_index_mapping
-from .convert_time_range_to_timeslot_ids import convert_time_range_to_timeslot_ids
+from .convert_time_range_to_timeslot_ids import convert_time_range_to_timeslot_ids, convert_time_ranges_to_timeslot_ids
 
 TIME_SLOT_DURATION_MINUTES = 15
 SLOTS_PER_DAY = (24 * 60) // TIME_SLOT_DURATION_MINUTES  # 96
@@ -18,7 +18,8 @@ SLOTS_PER_DAY = (24 * 60) // TIME_SLOT_DURATION_MINUTES  # 96
 def compute_effective_time_window(
     start_time: str,
     end_time: str,
-    existing_activities: list[ExistingTeamActivity]
+    existing_activities: list[ExistingTeamActivity],
+    payload: FieldOptimizerPayload | None = None
 ) -> tuple[str, str]:
     """
     Expands the optimization time window to include times of predefined activities.
@@ -54,6 +55,18 @@ def compute_effective_time_window(
             effective_start = start_minutes
         if end_minutes > effective_end:
             effective_end = end_minutes
+
+    # Expand window to include team time_ranges (e.g., weekend times)
+    if payload:
+        for team in payload.teams:
+            ranges = team.time_ranges or [team.time_range]
+            for tr in ranges:
+                tr_start = time_str_to_minutes(tr.start_time)
+                tr_end = time_str_to_minutes(tr.end_time)
+                if tr_start < effective_start:
+                    effective_start = tr_start
+                if tr_end > effective_end:
+                    effective_end = tr_end
 
     return minutes_to_time_str(effective_start), minutes_to_time_str(effective_end)
 
@@ -168,7 +181,7 @@ def convert_payload_to_input(
     # Expand time window to include predefined activities that may fall outside
     # the user's normal window (e.g., weekend 10:00 when window is 16:00-22:00)
     effective_start_time, effective_end_time = compute_effective_time_window(
-        payload.start_time, payload.end_time, payload.existing_team_activities
+        payload.start_time, payload.end_time, payload.existing_team_activities, payload
     )
 
     time_slots_in_range = generate_time_slots_in_range(
@@ -199,8 +212,12 @@ def convert_payload_to_input(
 
     groups = []
     for team in payload.teams:
-        possible_start_times = convert_time_range_to_timeslot_ids(
-            team.time_range, timeslot_to_index_map)
+        if team.time_ranges:
+            possible_start_times = convert_time_ranges_to_timeslot_ids(
+                team.time_ranges, timeslot_to_index_map)
+        else:
+            possible_start_times = convert_time_range_to_timeslot_ids(
+                team.time_range, timeslot_to_index_map)
 
         # TODO: when ready, use "team.preferred_start_times"
         preferred_start_times = []
