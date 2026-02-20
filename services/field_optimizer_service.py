@@ -1,6 +1,7 @@
 import concurrent.futures
 import json
 import logging
+import re
 import time
 import traceback
 from datetime import datetime
@@ -17,6 +18,7 @@ from models.field_optimizer.field_optimizer_payload import FieldOptimizerPayload
 from models.field_optimizer.field_optimizer_result import (
     FieldOptimizerResult,
     ActivitiesNotGenerated,
+    IterationDetail,
     Team,
 )
 from models.field_optimizer.field_optimizer_input import Group
@@ -224,7 +226,8 @@ class FieldOptimizerService:
 
             solve_result = None
             preference_score_value = None
-            for iteration in SOLVE_ITERATIONS:
+            iteration_details = []
+            for i, iteration in enumerate(SOLVE_ITERATIONS):
                 scip_opts = f"lim:time={iteration['time']} lim:gap={iteration['gap']}"
                 if "absgap" in iteration:
                     scip_opts += f" lim:absgap={iteration['absgap']}"
@@ -232,14 +235,30 @@ class FieldOptimizerService:
                 ampl.solve()
 
                 solve_result = ampl.get_value("solve_result")
-                if solve_result == "infeasible":
-                    break
 
                 try:
                     preference_score = ampl.obj["preference_score"]
                     preference_score_value = preference_score.value()
                 except Exception:
                     preference_score_value = None
+
+                gap_pct, abs_gap = FieldOptimizerService._extract_solver_gap(ampl)
+                elapsed_ms = round(
+                    (datetime.now() - start_time).total_seconds() * 1000, 2)
+
+                iteration_details.append(IterationDetail(
+                    iteration=i + 1,
+                    time_limit=iteration["time"],
+                    gap_limit=iteration["gap"],
+                    elapsed_ms=elapsed_ms,
+                    solve_result=solve_result,
+                    preference_score=preference_score_value,
+                    gap_percent=gap_pct,
+                    abs_gap=abs_gap,
+                ))
+
+                if solve_result == "infeasible":
+                    break
 
                 # Break if solver proved optimality (even if score is negative
                 # due to soft constraint penalties — that is still a valid solution)
@@ -255,7 +274,8 @@ class FieldOptimizerService:
                     result="infeasible",
                     duration_ms=duration_ms,
                     preference_score=None,
-                    activities=[]
+                    activities=[],
+                    iterations=iteration_details,
                 )
 
             # 2. No objective value (solver error / edge case)
@@ -267,7 +287,8 @@ class FieldOptimizerService:
                     result="no_objective_value",
                     duration_ms=duration_ms,
                     preference_score=None,
-                    activities=[]
+                    activities=[],
+                    iterations=iteration_details,
                 )
 
             # 3. Solved (possibly with shortfall from soft constraints)
@@ -313,6 +334,7 @@ class FieldOptimizerService:
                 preference_score=preference_score_value,
                 activities=result_activities,
                 activities_not_generated=activities_not_generated if activities_not_generated else None,
+                iterations=iteration_details,
             )
         except Exception as e:
             logger.error("Optimization error: %s", e, exc_info=True)
@@ -446,6 +468,7 @@ class FieldOptimizerService:
         solve_result: str,
         preference_score_value: float | None,
         start_time: datetime,
+        iterations: list[IterationDetail] | None = None,
     ) -> FieldOptimizerResult:
         """Shared result-building logic used by both solve() and solve_stream()."""
         field_optimizer_input = converted_payload.field_optimizer_input
@@ -461,7 +484,8 @@ class FieldOptimizerService:
                 result="infeasible",
                 duration_ms=duration_ms,
                 preference_score=None,
-                activities=[]
+                activities=[],
+                iterations=iterations,
             )
 
         if preference_score_value is None:
@@ -472,7 +496,8 @@ class FieldOptimizerService:
                 result="no_objective_value",
                 duration_ms=duration_ms,
                 preference_score=None,
-                activities=[]
+                activities=[],
+                iterations=iterations,
             )
 
         field_allocations = convert_ampl_x_values_to_allocations(
@@ -517,12 +542,43 @@ class FieldOptimizerService:
             preference_score=preference_score_value,
             activities=result_activities,
             activities_not_generated=activities_not_generated if activities_not_generated else None,
+            iterations=iterations,
         )
 
     @staticmethod
     def _sse_event(data: dict) -> str:
         """Format a dict as an SSE event string."""
         return f"data: {json.dumps(data)}\n\n"
+
+    @staticmethod
+    def _extract_solver_gap(ampl: AMPL) -> tuple[float | None, float | None]:
+        """Extract relative gap (%) and absolute gap from SCIP after solve().
+        Returns (gap_percent, abs_gap) or (None, None) if unavailable."""
+        try:
+            obj_val = ampl.obj["preference_score"].value()
+            solve_message = str(ampl.get_value("solve_message"))
+            abs_gap = None
+            gap_pct = None
+
+            # SCIP solve_message contains "primal bound" and "dual bound"
+            # or "gap" in its output. Try parsing it.
+            # Look for "dual bound: <number>" in the solve message
+            dual_match = re.search(r"dual bound:\s*([-\d.eE+]+)", solve_message)
+            if dual_match and obj_val is not None:
+                dual_bound = float(dual_match.group(1))
+                abs_gap = round(abs(obj_val - dual_bound), 6)
+                if abs(obj_val) > 1e-10:
+                    gap_pct = round(abs_gap / abs(obj_val) * 100, 4)
+
+            # Fallback: look for explicit gap percentage
+            if gap_pct is None:
+                gap_match = re.search(r"gap:\s*([-\d.eE+]+)%", solve_message)
+                if gap_match:
+                    gap_pct = round(float(gap_match.group(1)), 4)
+
+            return (gap_pct, abs_gap)
+        except Exception:
+            return (None, None)
 
     @staticmethod
     def solve_stream(payload: FieldOptimizerPayload) -> Generator[str, None, None]:
@@ -548,6 +604,7 @@ class FieldOptimizerService:
 
             solve_result = None
             preference_score_value = None
+            iteration_details = []
 
             for i, iteration in enumerate(SOLVE_ITERATIONS):
                 yield FieldOptimizerService._sse_event({
@@ -580,8 +637,22 @@ class FieldOptimizerService:
                 except Exception:
                     preference_score_value = None
 
+                gap_pct, abs_gap = FieldOptimizerService._extract_solver_gap(ampl)
+
                 elapsed_ms = round(
                     (datetime.now() - start_time).total_seconds() * 1000, 2)
+
+                iteration_details.append(IterationDetail(
+                    iteration=i + 1,
+                    time_limit=iteration["time"],
+                    gap_limit=iteration["gap"],
+                    elapsed_ms=elapsed_ms,
+                    solve_result=solve_result,
+                    preference_score=preference_score_value,
+                    gap_percent=gap_pct,
+                    abs_gap=abs_gap,
+                ))
+
                 yield FieldOptimizerService._sse_event({
                     "type": "iteration_complete",
                     "iteration": i + 1,
@@ -589,6 +660,8 @@ class FieldOptimizerService:
                     "solve_result": solve_result,
                     "preference_score": preference_score_value,
                     "elapsed_ms": elapsed_ms,
+                    "gap_percent": gap_pct,
+                    "abs_gap": abs_gap,
                 })
 
                 if solve_result == "infeasible":
@@ -599,6 +672,7 @@ class FieldOptimizerService:
             result = FieldOptimizerService._build_result(
                 ampl, payload, converted_payload, processed_activities,
                 solve_result, preference_score_value, start_time,
+                iterations=iteration_details,
             )
 
             yield FieldOptimizerService._sse_event({

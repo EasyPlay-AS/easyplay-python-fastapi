@@ -27,6 +27,17 @@ class ActivitiesNotGenerated(BaseModel):
     missing_activities: float
 
 
+class IterationDetail(BaseModel):
+    iteration: int
+    time_limit: int
+    gap_limit: float
+    elapsed_ms: float
+    solve_result: str
+    preference_score: float | None
+    gap_percent: float | None
+    abs_gap: float | None
+
+
 class FieldOptimizerResult(BaseModel):
     result: Literal["solved", "infeasible", "no_objective_value", "failure"]
     duration_ms: float
@@ -34,3 +45,4 @@ class FieldOptimizerResult(BaseModel):
     activities: list[Activity]
     activities_not_generated: list[ActivitiesNotGenerated] | None = None
     error_message: str | None = None
+    iterations: list[IterationDetail] | None = None
