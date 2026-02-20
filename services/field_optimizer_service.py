@@ -36,6 +36,8 @@ SOLVE_ITERATIONS = [
     {"time": 10, "gap": 0},
     {"time": 30, "gap": 0.02},
     {"time": 60, "gap": 1},
+    {"time": 60, "gap": 1000},
+
 ]
 
 
