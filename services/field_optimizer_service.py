@@ -1,9 +1,18 @@
+import concurrent.futures
 import json
 import logging
+import time
 import traceback
 from datetime import datetime
 from typing import Generator
 from amplpy import AMPL, OutputHandler
+
+
+class SilentOutputHandler(OutputHandler):
+    def output(self, kind, msg):
+        pass
+
+
 from models.field_optimizer.field_optimizer_payload import FieldOptimizerPayload
 from models.field_optimizer.field_optimizer_result import (
     FieldOptimizerResult,
@@ -85,7 +94,7 @@ class FieldOptimizerService:
         try:
             # Initialize AMPL with SCIP solver
             ampl = AMPL()
-            ampl.set_output_handler(OutputHandler())
+            ampl.set_output_handler(SilentOutputHandler())
             ampl.option["solver"] = "scip"
 
             # Load the model file
@@ -331,7 +340,7 @@ class FieldOptimizerService:
         auto_incompatible_same_time = converted_payload.auto_incompatible_same_time
 
         ampl = AMPL()
-        ampl.set_output_handler(OutputHandler())
+        ampl.set_output_handler(SilentOutputHandler())
         ampl.option["solver"] = "scip"
         ampl.read("./ampl/field_optimizer.mod")
 
@@ -554,7 +563,14 @@ class FieldOptimizerService:
                     scip_opts += f" lim:absgap={iteration['absgap']}"
                 ampl.option["scip_options"] = scip_opts
 
-                ampl.solve()
+                # Run solver in background thread, yield heartbeats to keep
+                # Railway's upstream proxy connection alive
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                    future = executor.submit(ampl.solve)
+                    while not future.done():
+                        yield ": heartbeat\n\n"
+                        time.sleep(2)
+                    future.result()
 
                 solve_result = ampl.get_value("solve_result")
 
