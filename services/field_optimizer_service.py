@@ -3,7 +3,7 @@ import logging
 import traceback
 from datetime import datetime
 from typing import Generator
-from amplpy import AMPL
+from amplpy import AMPL, OutputHandler
 from models.field_optimizer.field_optimizer_payload import FieldOptimizerPayload
 from models.field_optimizer.field_optimizer_result import (
     FieldOptimizerResult,
@@ -85,7 +85,7 @@ class FieldOptimizerService:
         try:
             # Initialize AMPL with SCIP solver
             ampl = AMPL()
-            ampl.set_output_handler(lambda kind, msg: None)
+            ampl.set_output_handler(OutputHandler())
             ampl.option["solver"] = "scip"
 
             # Load the model file
@@ -331,7 +331,7 @@ class FieldOptimizerService:
         auto_incompatible_same_time = converted_payload.auto_incompatible_same_time
 
         ampl = AMPL()
-        ampl.set_output_handler(lambda kind, msg: None)
+        ampl.set_output_handler(OutputHandler())
         ampl.option["solver"] = "scip"
         ampl.read("./ampl/field_optimizer.mod")
 
