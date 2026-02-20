@@ -1,6 +1,6 @@
 import itertools
+import logging
 from pydantic import BaseModel
-
 from models.field_optimizer.field_optimizer_payload import FieldOptimizerPayload, ExistingTeamActivity
 from models.field_optimizer.field_optimizer_input import FieldOptimizerInput, Field, Group
 from models.field_optimizer.time_slot import TimeSlot
@@ -13,6 +13,7 @@ from .convert_time_range_to_timeslot_ids import convert_time_range_to_timeslot_i
 
 TIME_SLOT_DURATION_MINUTES = 15
 SLOTS_PER_DAY = (24 * 60) // TIME_SLOT_DURATION_MINUTES  # 96
+logger = logging.getLogger(__name__)
 
 
 def compute_effective_time_window(
@@ -155,7 +156,7 @@ def split_groups_for_existing_activities(
             mismatch_details.append(f"size {parent.size_required}->{activity.size_required}")
         if not duration_match:
             mismatch_details.append(f"duration {parent.duration}->{activity.duration_slots}")
-        print(f"Auto-subgroup '{subgroup_id}' created for '{activity.team_name}' ({', '.join(mismatch_details)})")
+        logger.info("Auto-subgroup '%s' created for '%s' (%s)", subgroup_id, activity.team_name, ', '.join(mismatch_details))
 
     all_groups = groups + new_groups
     return all_groups, updated_activities, new_incompatible_same_day, new_incompatible_same_time

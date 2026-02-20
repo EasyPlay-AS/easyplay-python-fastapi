@@ -1,8 +1,11 @@
+import logging
 from typing import Dict, List, Tuple, Optional
 from pydantic import BaseModel
 
 from models.field_optimizer.field_optimizer_payload import ExistingTeamActivity
 from models.field_optimizer.field_optimizer_input import FieldOptimizerInput
+
+logger = logging.getLogger(__name__)
 
 
 class ProcessedActivity(BaseModel):
@@ -102,7 +105,7 @@ def build_aat_map(
     if len(existing_activities) == 0:
         return aat_map, processed_activities
 
-    print(f"Processing {len(existing_activities)} existing activities")
+    logger.info("Processing %d existing activities", len(existing_activities))
 
     for activity in existing_activities:
         field_id = activity.stadium_id
@@ -111,7 +114,7 @@ def build_aat_map(
         # Validate activity references
         is_valid, error_msg = validate_existing_activity(activity, field_optimizer_input)
         if not is_valid:
-            print(f"WARNING: {error_msg} - skipping activity")
+            logger.warning("%s - skipping activity", error_msg)
             continue
 
         # Convert global timeslots to relative indexes
@@ -121,16 +124,16 @@ def build_aat_map(
 
         # Log skipped timeslots (outside optimization window)
         if len(skipped) > 0:
-            print(f"WARNING: {len(skipped)} timeslot(s) outside optimization window for '{activity.team_name}': {skipped}")
+            logger.warning("%d timeslot(s) outside optimization window for '%s': %s", len(skipped), activity.team_name, skipped)
 
         # Skip if no valid timeslots
         if len(timeslot_indexes) == 0:
-            print(f"WARNING: Activity '{activity.team_name}' has no valid timeslots - skipping")
+            logger.warning("Activity '%s' has no valid timeslots - skipping", activity.team_name)
             continue
 
         # Skip if start is outside window
         if start_idx is None:
-            print(f"WARNING: Start timeslot outside window for '{activity.team_name}' - skipping")
+            logger.warning("Start timeslot outside window for '%s' - skipping", activity.team_name)
             continue
 
         # Add to AAT map (for constraint exclusion)
@@ -151,6 +154,6 @@ def build_aat_map(
     for key in aat_map:
         aat_map[key] = sorted(set(aat_map[key]))
 
-    print(f"Successfully processed {len(processed_activities)} activities for fixing")
+    logger.info("Successfully processed %d activities for fixing", len(processed_activities))
 
     return aat_map, processed_activities

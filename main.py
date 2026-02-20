@@ -1,3 +1,4 @@
+import logging
 import os
 from amplpy import modules
 from dotenv import load_dotenv
@@ -10,6 +11,7 @@ from models.field_optimizer.field_optimizer_payload import FieldOptimizerPayload
 from services.example_service import ExampleService
 from services.field_optimizer_service import FieldOptimizerService
 
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
@@ -25,11 +27,11 @@ def activate_ampl_license():
     if license_uuid:
         try:
             modules.activate(license_uuid)
-            print(f"AMPL license activated successfully: {license_uuid}")
+            logger.info("AMPL license activated successfully: %s", license_uuid)
         except Exception as e:
-            print(f"Failed to activate AMPL license: {e}")
+            logger.error("Failed to activate AMPL license: %s", e)
     else:
-        print("No AMPL_LICENSE_UUID found in environment variables")
+        logger.warning("No AMPL_LICENSE_UUID found in environment variables")
 
 
 activate_ampl_license()

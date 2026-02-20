@@ -1,5 +1,8 @@
 import json
+import logging
+import time
 import traceback
+import concurrent.futures
 from datetime import datetime
 from typing import Generator
 from amplpy import AMPL
@@ -17,6 +20,8 @@ from utils.field_optimizer import (
     convert_field_allocations_to_activities,
     build_aat_map,
 )
+
+logger = logging.getLogger(__name__)
 
 SOLVE_ITERATIONS = [
     {"time": 10, "gap": 0},
@@ -82,6 +87,7 @@ class FieldOptimizerService:
         try:
             # Initialize AMPL with SCIP solver
             ampl = AMPL()
+            ampl.set_output_handler(lambda kind, msg: None)
             ampl.option["solver"] = "scip"
 
             # Load the model file
@@ -195,8 +201,7 @@ class FieldOptimizerService:
                     ampl.var["y"][activity.field_id,
                                   activity.group_id, activity.start_index].fix(1)
                 except Exception as e:
-                    print(
-                        f"ERROR: Could not fix y variable for {activity.group_id}: {e}")
+                    logger.error("Could not fix y variable for %s: %s", activity.group_id, e)
                     continue
 
                 for idx in activity.timeslot_indexes:
@@ -204,8 +209,7 @@ class FieldOptimizerService:
                         ampl.var["x"][activity.field_id,
                                       activity.group_id, idx].fix(1)
                     except Exception as e:
-                        print(
-                            f"ERROR: Could not fix x variable for {activity.group_id} at index {idx}: {e}")
+                        logger.error("Could not fix x variable for %s at index %s: %s", activity.group_id, idx, e)
 
             # Set unavailable times for each field (UT)
             for field in field_optimizer_input.fields:
@@ -304,8 +308,7 @@ class FieldOptimizerService:
                 activities_not_generated=activities_not_generated if activities_not_generated else None,
             )
         except Exception as e:
-            print(f"ERROR: {e}", flush=True)
-            traceback.print_exc()
+            logger.error("Optimization error: %s", e, exc_info=True)
             end_time = datetime.now()
             duration_ms = round(
                 (end_time - start_time).total_seconds() * 1000, 2)
@@ -330,6 +333,7 @@ class FieldOptimizerService:
         auto_incompatible_same_time = converted_payload.auto_incompatible_same_time
 
         ampl = AMPL()
+        ampl.set_output_handler(lambda kind, msg: None)
         ampl.option["solver"] = "scip"
         ampl.read("./ampl/field_optimizer.mod")
 
@@ -411,8 +415,7 @@ class FieldOptimizerService:
                 ampl.var["y"][activity.field_id,
                               activity.group_id, activity.start_index].fix(1)
             except Exception as e:
-                print(
-                    f"ERROR: Could not fix y variable for {activity.group_id}: {e}")
+                logger.error("Could not fix y variable for %s: %s", activity.group_id, e)
                 continue
 
             for idx in activity.timeslot_indexes:
@@ -420,8 +423,7 @@ class FieldOptimizerService:
                     ampl.var["x"][activity.field_id,
                                   activity.group_id, idx].fix(1)
                 except Exception as e:
-                    print(
-                        f"ERROR: Could not fix x variable for {activity.group_id} at index {idx}: {e}")
+                    logger.error("Could not fix x variable for %s at index %s: %s", activity.group_id, idx, e)
 
         for field in field_optimizer_input.fields:
             ampl.set["UT"][field.id] = field.unavailable_start_times
@@ -553,7 +555,13 @@ class FieldOptimizerService:
                 if "absgap" in iteration:
                     scip_opts += f" lim:absgap={iteration['absgap']}"
                 ampl.option["scip_options"] = scip_opts
-                ampl.solve()
+
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                    future = executor.submit(ampl.solve)
+                    while not future.done():
+                        yield ": heartbeat\n\n"
+                        time.sleep(2)
+                    future.result()
 
                 solve_result = ampl.get_value("solve_result")
 
@@ -590,8 +598,7 @@ class FieldOptimizerService:
             })
 
         except Exception as e:
-            print(f"ERROR: {e}", flush=True)
-            traceback.print_exc()
+            logger.error("Optimization stream error: %s", e, exc_info=True)
             elapsed_ms = round(
                 (datetime.now() - start_time).total_seconds() * 1000, 2)
             yield FieldOptimizerService._sse_event({
