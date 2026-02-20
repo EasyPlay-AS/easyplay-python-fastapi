@@ -1,8 +1,6 @@
 import json
 import logging
-import time
 import traceback
-import concurrent.futures
 from datetime import datetime
 from typing import Generator
 from amplpy import AMPL
@@ -556,12 +554,7 @@ class FieldOptimizerService:
                     scip_opts += f" lim:absgap={iteration['absgap']}"
                 ampl.option["scip_options"] = scip_opts
 
-                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                    future = executor.submit(ampl.solve)
-                    while not future.done():
-                        yield ": heartbeat\n\n"
-                        time.sleep(2)
-                    future.result()
+                ampl.solve()
 
                 solve_result = ampl.get_value("solve_result")
 
