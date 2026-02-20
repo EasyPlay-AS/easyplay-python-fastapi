@@ -34,11 +34,11 @@ logger = logging.getLogger(__name__)
 
 SOLVE_ITERATIONS = [
     {"time": 15, "gap": 0},
-    {"time": 55, "gap": 0.05, "pre_settings": 2},
+    {"time": 90, "gap": 0.05, "pre_settings": 2},
 ]
 
 SOLVE_ITERATIONS_EXTENDED = [
-    {"time": 300, "gap": 0.1, "pre_settings": 2},
+    {"time": 260, "gap": 0.1, "pre_settings": 2},
 ]
 
 
