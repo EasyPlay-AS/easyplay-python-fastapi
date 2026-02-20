@@ -33,11 +33,8 @@ from utils.field_optimizer import (
 logger = logging.getLogger(__name__)
 
 SOLVE_ITERATIONS = [
-    {"time": 10, "gap": 0},
-    {"time": 30, "gap": 0.02},
-    {"time": 60, "gap": 1},
-    {"time": 60, "gap": 1000},
-
+    {"time": 15, "gap": 0},
+    {"time": 120, "gap": 0.05, "pre_settings": 2},
 ]
 
 
@@ -233,6 +230,8 @@ class FieldOptimizerService:
                 scip_opts = f"lim:time={iteration['time']} lim:gap={iteration['gap']}"
                 if "absgap" in iteration:
                     scip_opts += f" lim:absgap={iteration['absgap']}"
+                if "pre_settings" in iteration:
+                    scip_opts += f" pre:settings={iteration['pre_settings']}"
                 ampl.option["scip_options"] = scip_opts
                 ampl.solve()
 
@@ -619,6 +618,8 @@ class FieldOptimizerService:
                 scip_opts = f"lim:time={iteration['time']} lim:gap={iteration['gap']}"
                 if "absgap" in iteration:
                     scip_opts += f" lim:absgap={iteration['absgap']}"
+                if "pre_settings" in iteration:
+                    scip_opts += f" pre:settings={iteration['pre_settings']}"
                 ampl.option["scip_options"] = scip_opts
 
                 # Run solver in background thread, yield heartbeats to keep
