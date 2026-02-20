@@ -1,8 +1,6 @@
-import concurrent.futures
 import json
 import logging
 import re
-import time
 import traceback
 from datetime import datetime
 from typing import Generator
@@ -635,14 +633,7 @@ class FieldOptimizerService:
                     scip_opts += f" pre:settings={iteration['pre_settings']}"
                 ampl.option["scip_options"] = scip_opts
 
-                # Run solver in background thread, yield heartbeats to keep
-                # Railway's upstream proxy connection alive
-                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                    future = executor.submit(ampl.solve)
-                    while not future.done():
-                        yield ": heartbeat\n\n"
-                        time.sleep(2)
-                    future.result()
+                ampl.solve()
 
                 solve_result = ampl.get_value("solve_result")
 
