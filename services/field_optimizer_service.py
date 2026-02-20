@@ -34,7 +34,11 @@ logger = logging.getLogger(__name__)
 
 SOLVE_ITERATIONS = [
     {"time": 15, "gap": 0},
-    {"time": 120, "gap": 0.05, "pre_settings": 2},
+    {"time": 55, "gap": 0.05, "pre_settings": 2},
+]
+
+SOLVE_ITERATIONS_EXTENDED = [
+    {"time": 300, "gap": 0.1, "pre_settings": 2},
 ]
 
 
@@ -226,7 +230,8 @@ class FieldOptimizerService:
             solve_result = None
             preference_score_value = None
             iteration_details = []
-            for i, iteration in enumerate(SOLVE_ITERATIONS):
+            iterations_config = SOLVE_ITERATIONS_EXTENDED if payload.extended_time else SOLVE_ITERATIONS
+            for i, iteration in enumerate(iterations_config):
                 scip_opts = f"lim:time={iteration['time']} lim:gap={iteration['gap']}"
                 if "absgap" in iteration:
                     scip_opts += f" lim:absgap={iteration['absgap']}"
@@ -562,14 +567,21 @@ class FieldOptimizerService:
             gap_pct = None
 
             # SCIP format: "absmipgap=106714, relmipgap=29.0867"
-            abs_match = re.search(r"absmipgap=([\d.eE+-]+)", solve_message)
+            # relmipgap can also be "inf" when best bound is 0
+            abs_match = re.search(r"absmipgap=([\d.eE+-]+|inf)", solve_message)
             if abs_match:
-                abs_gap = round(float(abs_match.group(1)), 2)
+                raw_abs = float(abs_match.group(1))
+                abs_gap = 9999999.0 if raw_abs == float("inf") else round(raw_abs, 2)
 
-            rel_match = re.search(r"relmipgap=([\d.eE+-]+)", solve_message)
+            rel_match = re.search(r"relmipgap=([\d.eE+-]+|inf)", solve_message)
             if rel_match:
-                # relmipgap is a ratio — multiply by 100 for percentage
-                gap_pct = round(float(rel_match.group(1)) * 100, 2)
+                raw = float(rel_match.group(1))
+                if raw == float("inf"):
+                    # inf is not valid JSON — use a sentinel value
+                    gap_pct = 9999.0
+                else:
+                    # relmipgap is a ratio — multiply by 100 for percentage
+                    gap_pct = round(raw * 100, 2)
 
             # If solver proved optimality, gap is 0
             if gap_pct is None and solve_result == "solved":
@@ -591,12 +603,13 @@ class FieldOptimizerService:
                 FieldOptimizerService._setup_ampl(payload)
 
             field_optimizer_input = converted_payload.field_optimizer_input
+            iterations_config = SOLVE_ITERATIONS_EXTENDED if payload.extended_time else SOLVE_ITERATIONS
 
             elapsed_ms = round(
                 (datetime.now() - start_time).total_seconds() * 1000, 2)
             yield FieldOptimizerService._sse_event({
                 "type": "started",
-                "total_iterations": 3,
+                "total_iterations": len(iterations_config),
                 "team_count": len(field_optimizer_input.groups),
                 "stadium_count": len(field_optimizer_input.fields),
                 "elapsed_ms": elapsed_ms,
@@ -606,11 +619,11 @@ class FieldOptimizerService:
             preference_score_value = None
             iteration_details = []
 
-            for i, iteration in enumerate(SOLVE_ITERATIONS):
+            for i, iteration in enumerate(iterations_config):
                 yield FieldOptimizerService._sse_event({
                     "type": "iteration_start",
                     "iteration": i + 1,
-                    "total_iterations": len(SOLVE_ITERATIONS),
+                    "total_iterations": len(iterations_config),
                     "time_limit": iteration["time"],
                     "gap_limit": iteration["gap"],
                 })
@@ -658,7 +671,7 @@ class FieldOptimizerService:
                 yield FieldOptimizerService._sse_event({
                     "type": "iteration_complete",
                     "iteration": i + 1,
-                    "total_iterations": len(SOLVE_ITERATIONS),
+                    "total_iterations": len(iterations_config),
                     "solve_result": solve_result,
                     "preference_score": preference_score_value,
                     "elapsed_ms": elapsed_ms,
