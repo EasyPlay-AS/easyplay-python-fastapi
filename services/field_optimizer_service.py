@@ -242,7 +242,7 @@ class FieldOptimizerService:
                 except Exception:
                     preference_score_value = None
 
-                gap_pct, abs_gap = FieldOptimizerService._extract_solver_gap(ampl)
+                gap_pct, abs_gap = FieldOptimizerService._extract_solver_gap(ampl, solve_result)
                 elapsed_ms = round(
                     (datetime.now() - start_time).total_seconds() * 1000, 2)
 
@@ -551,30 +551,29 @@ class FieldOptimizerService:
         return f"data: {json.dumps(data)}\n\n"
 
     @staticmethod
-    def _extract_solver_gap(ampl: AMPL) -> tuple[float | None, float | None]:
+    def _extract_solver_gap(ampl: AMPL, solve_result: str | None = None) -> tuple[float | None, float | None]:
         """Extract relative gap (%) and absolute gap from SCIP after solve().
         Returns (gap_percent, abs_gap) or (None, None) if unavailable."""
         try:
-            obj_val = ampl.obj["preference_score"].value()
             solve_message = str(ampl.get_value("solve_message"))
+            logger.info("SCIP solve_message: %s", solve_message)
             abs_gap = None
             gap_pct = None
 
-            # SCIP solve_message contains "primal bound" and "dual bound"
-            # or "gap" in its output. Try parsing it.
-            # Look for "dual bound: <number>" in the solve message
-            dual_match = re.search(r"dual bound:\s*([-\d.eE+]+)", solve_message)
-            if dual_match and obj_val is not None:
-                dual_bound = float(dual_match.group(1))
-                abs_gap = round(abs(obj_val - dual_bound), 6)
-                if abs(obj_val) > 1e-10:
-                    gap_pct = round(abs_gap / abs(obj_val) * 100, 4)
+            # SCIP format: "absmipgap=106714, relmipgap=29.0867"
+            abs_match = re.search(r"absmipgap=([\d.eE+-]+)", solve_message)
+            if abs_match:
+                abs_gap = round(float(abs_match.group(1)), 2)
 
-            # Fallback: look for explicit gap percentage
-            if gap_pct is None:
-                gap_match = re.search(r"gap:\s*([-\d.eE+]+)%", solve_message)
-                if gap_match:
-                    gap_pct = round(float(gap_match.group(1)), 4)
+            rel_match = re.search(r"relmipgap=([\d.eE+-]+)", solve_message)
+            if rel_match:
+                # relmipgap is a ratio — multiply by 100 for percentage
+                gap_pct = round(float(rel_match.group(1)) * 100, 2)
+
+            # If solver proved optimality, gap is 0
+            if gap_pct is None and solve_result == "solved":
+                gap_pct = 0.0
+                abs_gap = 0.0
 
             return (gap_pct, abs_gap)
         except Exception:
@@ -637,7 +636,7 @@ class FieldOptimizerService:
                 except Exception:
                     preference_score_value = None
 
-                gap_pct, abs_gap = FieldOptimizerService._extract_solver_gap(ampl)
+                gap_pct, abs_gap = FieldOptimizerService._extract_solver_gap(ampl, solve_result)
 
                 elapsed_ms = round(
                     (datetime.now() - start_time).total_seconds() * 1000, 2)
