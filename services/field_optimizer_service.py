@@ -65,6 +65,8 @@ def _extract_shortfall_info(
         pass
 
     for group in groups:
+        if group.id.startswith("__busyblock_"):
+            continue
         shortfall_value = shortfall_values.get(
             group.id, shortfall_values.get((group.id,), 0)
         )

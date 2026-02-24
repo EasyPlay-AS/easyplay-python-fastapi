@@ -33,6 +33,8 @@ def convert_field_activities_to_result(
         group_id = activity.group
         if "__existing_" in group_id:
             group_id = group_id.split("__existing_")[0]
+        if group_id.startswith("__busyblock_"):
+            continue  
 
         team = next(
             (team for team in payload.teams if team.id == group_id), None)
