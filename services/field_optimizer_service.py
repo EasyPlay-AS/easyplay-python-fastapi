@@ -227,6 +227,10 @@ class FieldOptimizerService:
             for field in field_optimizer_input.fields:
                 ampl.set["UT"][field.id] = field.unavailable_start_times
 
+            logger.info("Model: %d fields, %d groups, %d fixed activities, %d timeslots",
+                         len(field_optimizer_input.fields), len(field_optimizer_input.groups),
+                         len(processed_activities), len(all_timeslots))
+
             solve_result = None
             preference_score_value = None
             iteration_details = []
@@ -462,6 +466,10 @@ class FieldOptimizerService:
 
         for field in field_optimizer_input.fields:
             ampl.set["UT"][field.id] = field.unavailable_start_times
+
+        logger.info("Model: %d fields, %d groups, %d fixed activities",
+                     len(field_optimizer_input.fields), len(field_optimizer_input.groups),
+                     len(processed_activities))
 
         return ampl, converted_payload, processed_activities
 

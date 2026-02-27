@@ -156,7 +156,9 @@ def split_groups_for_existing_activities(
             mismatch_details.append(f"size {parent.size_required}->{activity.size_required}")
         if not duration_match:
             mismatch_details.append(f"duration {parent.duration}->{activity.duration_slots}")
-        logger.info("Auto-subgroup '%s' created for '%s' (%s)", subgroup_id, activity.team_name, ', '.join(mismatch_details))
+        logger.info("Auto-subgroup '%s' for '%s' on field '%s' at slot %d (%s)",
+                     subgroup_id, activity.team_name, activity.stadium_name,
+                     activity.start_timeslot, ', '.join(mismatch_details))
 
     all_groups = groups + new_groups
     return all_groups, updated_activities, new_incompatible_same_day, new_incompatible_same_time
@@ -181,6 +183,10 @@ def convert_payload_to_input(
     effective_start_time, effective_end_time = compute_effective_time_window(
         payload.start_time, payload.end_time, payload.existing_team_activities, payload
     )
+
+    if effective_start_time != payload.start_time or effective_end_time != payload.end_time:
+        logger.info("Time window expanded: %s-%s -> %s-%s",
+                     payload.start_time, payload.end_time, effective_start_time, effective_end_time)
 
     time_slots_in_range = generate_time_slots_in_range(
         effective_start_time, effective_end_time, TIME_SLOT_DURATION_MINUTES)

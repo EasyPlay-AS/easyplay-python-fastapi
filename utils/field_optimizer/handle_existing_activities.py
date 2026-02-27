@@ -150,10 +150,64 @@ def build_aat_map(
             timeslot_indexes=timeslot_indexes
         ))
 
+        logger.info("  Fixed: '%s' on '%s' timeslots %d-%d (indexes %d-%d, size %d)",
+                     activity.team_name, activity.stadium_name,
+                     activity.start_timeslot,
+                     activity.start_timeslot + activity.duration_slots - 1,
+                     timeslot_indexes[0], timeslot_indexes[-1],
+                     activity.size_required)
+
     # Sort and deduplicate all AAT sets
     for key in aat_map:
         aat_map[key] = sorted(set(aat_map[key]))
 
     logger.info("Successfully processed %d activities for fixing", len(processed_activities))
 
+    # Check for capacity collisions among fixed activities (diagnostic only)
+    try:
+        _check_fixed_activity_collisions(existing_activities, field_optimizer_input, timeslot_to_index_map)
+    except Exception:
+        logger.exception("Failed to check fixed activity collisions")
+
     return aat_map, processed_activities
+
+
+def _check_fixed_activity_collisions(
+    existing_activities: List[ExistingTeamActivity],
+    field_optimizer_input: FieldOptimizerInput,
+    timeslot_to_index_map: Dict[int, int]
+) -> None:
+    """Log warnings when fixed existing activities exceed field capacity at any timeslot."""
+    field_capacity = {f.id: f.size for f in field_optimizer_input.fields}
+    group_size = {g.id: g.size_required for g in field_optimizer_input.groups}
+
+    # Build demand per (field, timeslot_index)
+    slot_demand: Dict[Tuple[str, int], int] = {}
+    slot_activities: Dict[Tuple[str, int], List[str]] = {}
+
+    for activity in existing_activities:
+        field_id = activity.stadium_id
+        if field_id not in field_capacity:
+            continue
+        size_req = group_size.get(activity.team_id, activity.size_required)
+
+        for i in range(activity.duration_slots):
+            global_slot = activity.start_timeslot + i
+            idx = timeslot_to_index_map.get(global_slot)
+            if idx is None:
+                continue
+            key = (field_id, idx)
+            slot_demand[key] = slot_demand.get(key, 0) + size_req
+            if key not in slot_activities:
+                slot_activities[key] = []
+            slot_activities[key].append(activity.team_name)
+
+    for (field_id, idx), demand in slot_demand.items():
+        capacity = field_capacity[field_id]
+        if demand > capacity:
+            teams = slot_activities[(field_id, idx)]
+            field_name = next((f.name for f in field_optimizer_input.fields if f.id == field_id), field_id)
+            logger.warning(
+                "Capacity collision: field '%s' at index %d — demand %d > capacity %d (teams: %s)",
+                field_name, idx, demand, capacity, ', '.join(teams)
+            )
