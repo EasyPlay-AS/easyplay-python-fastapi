@@ -218,10 +218,12 @@ def convert_payload_to_input(
     for team in payload.teams:
         if team.time_ranges:
             possible_start_times = convert_time_ranges_to_timeslot_ids(
-                team.time_ranges, timeslot_to_index_map)
+                team.time_ranges, timeslot_to_index_map,
+                duration_slots=team.duration)
         else:
             possible_start_times = convert_time_range_to_timeslot_ids(
-                team.time_range, timeslot_to_index_map)
+                team.time_range, timeslot_to_index_map,
+                duration_slots=team.duration)
 
         # TODO: when ready, use "team.preferred_start_times"
         preferred_start_times = []
