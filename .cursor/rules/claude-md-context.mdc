@@ -1,0 +1,6 @@
+---
+description: EasyPlay Python FastAPI — always apply CLAUDE.md project context
+alwaysApply: true
+---
+
+Follow @CLAUDE.md for ecosystem boundaries, stateless API constraints, AMPL/solver notes, key commands, and common mistakes.
